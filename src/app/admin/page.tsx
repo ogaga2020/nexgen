@@ -133,6 +133,18 @@ export default function AdminEntryPage() {
                 >
                     {loading ? 'Processing...' : showCreate ? 'Create Admin' : 'Login'}
                 </button>
+
+                {!showCreate && (
+                    <div className="text-sm text-right mb-4">
+                        <button
+                            onClick={() => router.push('/admin/forgot')}
+                            className="text-blue-600 hover:underline focus:outline-none"
+                        >
+                            Forgot Password?
+                        </button>
+                    </div>
+                )}
+
             </div>
         </div>
     );

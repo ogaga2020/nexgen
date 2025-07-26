@@ -7,6 +7,10 @@ export interface IAdmin extends Document {
     password: string;
     role: 'superadmin' | 'editor';
     lastLoggedIn?: Date;
+    otp?: {
+        code: string;
+        expires: Date;
+    };
 }
 
 const AdminSchema = new Schema<IAdmin>(
@@ -33,7 +37,13 @@ const AdminSchema = new Schema<IAdmin>(
             enum: ['superadmin', 'editor'],
             default: 'editor'
         },
-        lastLoggedIn: { type: Date },
+        lastLoggedIn: {
+            type: Date
+        },
+        otp: {
+            code: { type: String },
+            expires: { type: Date }
+        }
     },
     { timestamps: true }
 );
