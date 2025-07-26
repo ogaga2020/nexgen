@@ -2,12 +2,12 @@ import AdminNavbar from "@/components/AdminNavbar";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 
-export default function AdminDashboardLayout({
+export default async function AdminDashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("adminToken")?.value;
 
     let isAuthenticated = false;

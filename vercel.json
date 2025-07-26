@@ -1,0 +1,9 @@
+{
+    "cron": [
+        {
+            "path": "/api/admin/reminder",
+            "schedule": "0 9 * * *",
+            "timezone": "Africa/Lagos"
+        }
+    ]
+}

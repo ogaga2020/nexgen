@@ -1,42 +1,40 @@
 import { connectDB } from '@/lib/db';
 import Admin from '@/models/Admin';
+import { sendMail } from '@/lib/email';
+import { adminAccountCreated } from '@/lib/templates';
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
-
-export async function GET() {
-    try {
-        await connectDB();
-        const count = await Admin.countDocuments();
-        return NextResponse.json({ exists: count > 0 });
-    } catch (err) {
-        console.error('[ADMIN_CHECK_ERROR]', err);
-        return NextResponse.json({ error: 'Server error' }, { status: 500 });
-    }
-}
 
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
 
-        const existingCount = await Admin.countDocuments();
-        if (existingCount > 0) {
-            return NextResponse.json({ error: 'Admin already exists' }, { status: 403 });
+        const { fullName, email, phone, password } = await req.json();
+
+        const exists = await Admin.findOne({ email });
+        if (exists) {
+            return NextResponse.json({ error: 'Admin already exists' }, { status: 400 });
         }
 
-        const { fullName, email, phone, password } = await req.json();
         const hashed = await bcrypt.hash(password, 10);
 
-        const admin = await Admin.create({
+        const newAdmin = await Admin.create({
             fullName,
             email,
             phone,
             password: hashed,
-            role: 'superadmin',
+            role: 'editor',
         });
 
-        return NextResponse.json({ message: 'Admin created', adminId: admin._id });
+        await sendMail({
+            to: email,
+            subject: 'Your NexGen Admin Access',
+            html: adminAccountCreated(fullName, email, phone, password),
+        });
+
+        return NextResponse.json({ message: 'Admin created successfully' });
     } catch (err) {
-        console.error('[ADMIN_CREATE_ERROR]', err);
-        return NextResponse.json({ error: 'Server error' }, { status: 500 });
+        console.error('[CREATE_ADMIN_POST_ERROR]', err);
+        return NextResponse.json({ error: 'Failed to create admin' }, { status: 500 });
     }
 }

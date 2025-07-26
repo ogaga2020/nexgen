@@ -16,8 +16,13 @@ export default function AdminNavbar() {
             <h1 className="font-bold text-lg">NexGen Admin</h1>
             <div className="space-x-4">
                 <button onClick={() => router.push("/admin/dashboard")}>Dashboard</button>
+                <button onClick={() => router.push("/admin/students")}>Students</button>
                 <button onClick={() => router.push("/admin/create")}>Create Admin</button>
-                <button onClick={handleLogout} className="bg-white text-primary px-3 py-1 rounded">
+                <button onClick={() => router.push("/admin/transaction")}>Transaction</button>
+                <button
+                    onClick={handleLogout}
+                    className="bg-white text-primary px-3 py-1 rounded"
+                >
                     Logout
                 </button>
             </div>
