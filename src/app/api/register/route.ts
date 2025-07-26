@@ -1,6 +1,5 @@
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
-import Transaction from '@/models/Transaction';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -8,7 +7,6 @@ export async function POST(req: Request) {
         await connectDB();
 
         const data = await req.json();
-
         const {
             fullName,
             email,
@@ -24,7 +22,12 @@ export async function POST(req: Request) {
             photo: string;
             trainingType: 'Electrical' | 'Plumbing' | 'Solar';
             trainingDuration: 4 | 8 | 12;
-            guarantor: string;
+            guarantor: {
+                fullName: string;
+                email: string;
+                phone: string;
+                photo: string;
+            };
         } = data;
 
         const existing = await User.findOne({ email });
@@ -32,20 +35,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'User already registered' }, { status: 409 });
         }
 
-        // Estimate price for 60% initial payment
-        const prices = {
-            Electrical: { 4: 1350000, 8: 2600000, 12: 3400000 },
-            Plumbing: { 4: 1200000, 8: 2400000, 12: 3100000 },
-            Solar: { 4: 1400000, 8: 2800000, 12: 3600000 },
+        const prices: Record<number, number> = {
+            4: 400000,
+            8: 800000,
+            12: 1100000,
         };
-        const totalCost = prices[trainingType][trainingDuration];
+
+        const totalCost = prices[trainingDuration];
         const initialPayment = Math.floor(totalCost * 0.6);
 
-        // Set due date based on duration
         const dueDate = new Date();
         dueDate.setMonth(dueDate.getMonth() + trainingDuration);
 
-        // Create new user
         const user = await User.create({
             fullName,
             email,
@@ -57,8 +58,6 @@ export async function POST(req: Request) {
             dueDate,
             paymentStatus: 'not_paid',
         });
-
-        // You can optionally generate a Paystack payment reference here (we'll do it later)
 
         return NextResponse.json({
             message: 'User registered. Proceed to Paystack payment.',
