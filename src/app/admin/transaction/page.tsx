@@ -26,9 +26,17 @@ export default function TransactionsPage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     useEffect(() => {
-        axios.get('/api/admin/transactions')
-            .then(res => setTransactions(res.data))
-            .catch(() => alert('Failed to fetch transactions'));
+        axios.get('/api/admin/transaction')
+            .then(res => {
+                if (res.data?.transactions?.length > 0) {
+                    setTransactions(res.data.transactions);
+                } else {
+                    setTransactions([]);
+                }
+            })
+            .catch(() => {
+                console.error('Failed to fetch transactions');
+            });
     }, []);
 
     const filtered = useMemo(() => {

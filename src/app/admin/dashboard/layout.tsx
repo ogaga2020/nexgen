@@ -21,9 +21,11 @@ export default async function AdminDashboardLayout({
     }
 
     return (
-        <>
-            {isAuthenticated && <AdminNavbar />}
-            <main className="p-4">{children}</main>
-        </>
+        <html lang="en">
+            <body className="font-ui bg-background text-foreground">
+                {isAuthenticated && <AdminNavbar />}
+                <main className="p-4">{children}</main>
+            </body>
+        </html>
     );
 }

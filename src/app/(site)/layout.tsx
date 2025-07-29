@@ -21,11 +21,11 @@ export const metadata: Metadata = {
   description: "Training and services in Electrical, Plumbing, and Solar",
 };
 
-export default function RootLayout({
+export default function PublicLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" className={`${inter.variable} ${openSans.variable}`}>
       <body className="font-ui bg-background text-foreground">
