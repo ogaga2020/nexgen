@@ -5,22 +5,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useState } from 'react';
 import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
 const FormSchema = z.object({
     fullName: z.string().min(3),
     email: z.string().email(),
-    phone: z.string().min(11).max(15),
+    phone: z.string().regex(/^(\+234|0)[789][01]\d{8}$/, 'Invalid Nigerian phone'),
     trainingType: z.enum(['Electrical', 'Plumbing', 'Solar']),
-    trainingDuration: z.union([
-        z.literal(4),
-        z.literal(8),
-        z.literal(12),
-    ]),
+    trainingDuration: z.union([z.literal(4), z.literal(8), z.literal(12)]),
     photo: z.string().url(),
     guarantor: z.object({
         fullName: z.string().min(3),
         email: z.string().email(),
-        phone: z.string().min(11).max(15),
+        phone: z.string().regex(/^(\+234|0)[789][01]\d{8}$/, 'Invalid phone'),
         photo: z.string().url(),
     }),
 });
@@ -33,57 +30,73 @@ export default function RegisterPage() {
         handleSubmit,
         setValue,
         formState: { errors, isSubmitting },
-    } = useForm<FormData>({
-        resolver: zodResolver(FormSchema),
-    });
+    } = useForm<FormData>({ resolver: zodResolver(FormSchema) });
 
     const [uploadingUserPhoto, setUploadingUserPhoto] = useState(false);
     const [uploadingGuarantorPhoto, setUploadingGuarantorPhoto] = useState(false);
+    const router = useRouter();
 
-    async function handleUpload(
+    const handleUpload = async (
         e: React.ChangeEvent<HTMLInputElement>,
         field: 'photo' | 'guarantor.photo'
-    ) {
+    ) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'your_preset'); // Set your Cloudinary preset
+        formData.append('upload_preset', 'nexgen_default');
+        formData.append('folder', 'nextgen/passport');
 
-        const setUploading = field === 'photo' ? setUploadingUserPhoto : setUploadingGuarantorPhoto;
-        setUploading(true);
+        const uploadState = field === 'photo' ? setUploadingUserPhoto : setUploadingGuarantorPhoto;
+        uploadState(true);
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/your_cloud_name/image/upload',
+                `https://api.cloudinary.com/v1_1/dg0jsjmh9/image/upload`,
                 formData
             );
             setValue(field, res.data.secure_url);
         } catch (err) {
             alert('Upload failed');
         } finally {
-            setUploading(false);
+            uploadState(false);
         }
-    }
+    };
 
     const onSubmit = async (data: FormData) => {
-        // Optional: handle Paystack 60% init payment here
-        console.log('Submitting', data);
         try {
-            await axios.post('/api/register', data);
-            alert('Registered! Please proceed to payment.');
+            const res = await axios.post('/api/register', data);
+            const { paymentRef, amount, email } = res.data;
+
+            if (paymentRef) {
+                const paystack = (window as any).PaystackPop.setup({
+                    key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+                    email,
+                    amount: amount * 100,
+                    reference: paymentRef,
+                    callback: () => {
+                        alert('Payment successful!');
+                        router.push('/');
+                    },
+                    onClose: () => alert('Payment cancelled'),
+                });
+                paystack.openIframe();
+            } else {
+                alert('Registered without payment');
+                router.push('/');
+            }
         } catch (err) {
-            alert('Something went wrong.');
+            alert('Registration failed.');
         }
     };
 
     return (
         <div className="max-w-4xl mx-auto py-10 px-4">
-            <h1 className="text-3xl font-ui font-semibold mb-6 text-primary">Training Registration</h1>
+            <h1 className="text-3xl font-ui font-semibold mb-6 text-primary">
+                Training Registration
+            </h1>
             <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
-
-                {/* USER DETAILS */}
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
                         <label className="block font-ui mb-1">Full Name</label>
@@ -101,13 +114,12 @@ export default function RegisterPage() {
                         {errors.phone && <p className="text-danger text-sm">{errors.phone.message}</p>}
                     </div>
                     <div>
-                        <label className="block font-ui mb-1">Upload Photo</label>
+                        <label className="block font-ui mb-1">Upload Passport Photo</label>
                         <input type="file" onChange={(e) => handleUpload(e, 'photo')} />
                         {uploadingUserPhoto && <p className="text-warning">Uploading...</p>}
                     </div>
                 </div>
 
-                {/* TRAINING SELECTION */}
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
                         <label className="block font-ui mb-1">Training Type</label>
@@ -117,7 +129,9 @@ export default function RegisterPage() {
                             <option value="Plumbing">Plumbing</option>
                             <option value="Solar">Solar</option>
                         </select>
-                        {errors.trainingType && <p className="text-danger text-sm">{errors.trainingType.message}</p>}
+                        {errors.trainingType && (
+                            <p className="text-danger text-sm">{errors.trainingType.message}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block font-ui mb-1">Duration (months)</label>
@@ -127,27 +141,34 @@ export default function RegisterPage() {
                             <option value={8}>8 months</option>
                             <option value={12}>12 months</option>
                         </select>
-                        {errors.trainingDuration && <p className="text-danger text-sm">{errors.trainingDuration.message}</p>}
+                        {errors.trainingDuration && (
+                            <p className="text-danger text-sm">{errors.trainingDuration.message}</p>
+                        )}
                     </div>
                 </div>
 
-                {/* GUARANTOR DETAILS */}
                 <h2 className="text-xl font-ui font-medium mt-8">Guarantor Information</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
                         <label className="block font-ui mb-1">Guarantor Full Name</label>
                         <input {...register('guarantor.fullName')} className="input-field" />
-                        {errors.guarantor?.fullName && <p className="text-danger text-sm">{errors.guarantor.fullName.message}</p>}
+                        {errors.guarantor?.fullName && (
+                            <p className="text-danger text-sm">{errors.guarantor.fullName.message}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block font-ui mb-1">Guarantor Email</label>
                         <input {...register('guarantor.email')} className="input-field" />
-                        {errors.guarantor?.email && <p className="text-danger text-sm">{errors.guarantor.email.message}</p>}
+                        {errors.guarantor?.email && (
+                            <p className="text-danger text-sm">{errors.guarantor.email.message}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block font-ui mb-1">Guarantor Phone</label>
                         <input {...register('guarantor.phone')} className="input-field" />
-                        {errors.guarantor?.phone && <p className="text-danger text-sm">{errors.guarantor.phone.message}</p>}
+                        {errors.guarantor?.phone && (
+                            <p className="text-danger text-sm">{errors.guarantor.phone.message}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block font-ui mb-1">Upload Guarantor Photo</label>
