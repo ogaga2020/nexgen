@@ -4,16 +4,19 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --primary: #1E3A8A;
-  --accent: #FACC15;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --gray-base: #f5f5f5;
+  --foreground: #111111;
+  --primary: #0e3b65;
+  --accent: #2563eb;
+  --success: #16a34a;
+  --warning: #facc15;
+  --danger: #dc2626;
+  --gray-base: #6b7280;
+}
 
-  --font-ui: 'Inter', sans-serif;
-  --font-body: 'Open Sans', sans-serif;
+body {
+  font-family: 'Open Sans', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,12 +24,6 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-body);
 }
 
 h1,

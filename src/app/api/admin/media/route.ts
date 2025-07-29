@@ -2,8 +2,6 @@ import { connectDB } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { IncomingForm } from 'formidable';
-import fs from 'fs';
-import path from 'path';
 import { promisify } from 'util';
 
 export const config = {

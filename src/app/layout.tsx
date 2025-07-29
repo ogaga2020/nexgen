@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Open_Sans } from "next/font/google";
 import "@/styles/globals.css";
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
 const inter = Inter({
   variable: "--font-ui",
@@ -25,9 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${openSans.variable} antialiased`}>
+    <html lang="en" className={`${inter.variable} ${openSans.variable}`}>
+      <body className="font-ui bg-background text-foreground">
+        <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   );
