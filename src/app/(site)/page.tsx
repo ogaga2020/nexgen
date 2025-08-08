@@ -40,19 +40,49 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="py-16 px-4 text-center bg-white">
-          <h2 className="text-3xl font-semibold text-primary mb-8">Program Duration & Cost</h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              { months: 4, cost: '₦400,000' },
-              { months: 8, cost: '₦800,000' },
-              { months: 12, cost: '₦1,100,000' }
-            ].map((plan) => (
-              <div key={plan.months} className="border p-6 rounded-lg shadow">
-                <h3 className="text-xl font-bold text-primary mb-2">{plan.months} Months</h3>
-                <p className="text-lg font-semibold">{plan.cost}</p>
-              </div>
-            ))}
+        <section className="py-16 px-4 bg-white">
+          <h2 className="text-3xl font-semibold text-primary mb-4 text-center">Program Duration & Cost</h2>
+          <p className="text-gray-600 text-center mb-10">Pay in installments: 60% upfront, 40% before graduation.</p>
+
+          <div className="max-w-4xl mx-auto overflow-hidden rounded-lg border">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50">
+                <tr className="text-gray-600 text-sm">
+                  <th className="py-3 px-4 font-semibold">Duration</th>
+                  <th className="py-3 px-4 font-semibold">Tuition</th>
+                  <th className="py-3 px-4 font-semibold">60% Now</th>
+                  <th className="py-3 px-4 font-semibold">40% Before Graduation</th>
+                  <th className="py-3 px-4 font-semibold text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {[
+                  { months: 4, cost: 400000 },
+                  { months: 8, cost: 800000 },
+                  { months: 12, cost: 1100000 },
+                ].map(({ months, cost }) => {
+                  const sixty = Math.round(cost * 0.6);
+                  const forty = cost - sixty;
+                  const fmt = (n: number) => `₦${n.toLocaleString()}`;
+                  return (
+                    <tr key={months} className="hover:bg-blue-50/40">
+                      <td className="py-4 px-4 font-semibold text-gray-900">{months} Months</td>
+                      <td className="py-4 px-4">{fmt(cost)}</td>
+                      <td className="py-4 px-4">{fmt(sixty)}</td>
+                      <td className="py-4 px-4">{fmt(forty)}</td>
+                      <td className="py-4 px-4 text-right">
+                        <a
+                          href={`/register?duration=${months}`}
+                          className="inline-block rounded-md border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-600 hover:text-white transition"
+                        >
+                          Register
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </section>
 

@@ -55,7 +55,6 @@ export default function AboutPage() {
                 </div>
             </section>
 
-            {/* Instructors Section */}
             <section className="py-16 px-6 bg-white text-center">
                 <h2 className="text-3xl font-semibold text-primary mb-6">Meet the Instructors</h2>
                 <p className="text-gray-700 max-w-xl mx-auto mb-10">
@@ -66,7 +65,6 @@ export default function AboutPage() {
                 <p className="text-sm text-gray-500 italic">Instructor profiles coming soon...</p>
             </section>
 
-            {/* CTA Section */}
             <section className="bg-blue-900 text-white py-20 px-4 text-center">
                 <h2 className="text-3xl font-semibold mb-4">Start Your Journey with NexGen</h2>
                 <p className="text-lg mb-6">Learn from experts. Train with real equipment. Succeed in the real world.</p>
