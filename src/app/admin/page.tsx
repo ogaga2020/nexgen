@@ -21,7 +21,7 @@ export default function AdminEntryPage() {
         axios
             .get('/api/admin/create')
             .then((res) => setShowCreate(!res.data.exists))
-            .catch(() => setShowCreate(false));
+            .catch(() => setShowCreate(true));
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,8 +33,8 @@ export default function AdminEntryPage() {
         try {
             await axios.post('/api/admin/create', form);
             toast.success('Admin created! You can now log in.');
-            setForm({ fullName: '', email: '', phone: '', password: '' });
-            setTimeout(() => router.push('/admin'), 1000);
+            setShowCreate(false);
+            setForm((p) => ({ ...p, fullName: '', phone: '' }));
         } catch (err: any) {
             toast.error(err.response?.data?.error || 'Error creating admin');
         } finally {

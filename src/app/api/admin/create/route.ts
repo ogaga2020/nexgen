@@ -1,9 +1,19 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Admin from '@/models/Admin';
+import bcrypt from 'bcryptjs';
 import { sendMail } from '@/lib/email';
 import { adminAccountCreated } from '@/lib/templates';
-import bcrypt from 'bcryptjs';
-import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET() {
+    try {
+        await connectDB();
+        const count = await Admin.countDocuments({});
+        return NextResponse.json({ exists: count > 0 });
+    } catch (e) {
+        return NextResponse.json({ exists: false }, { status: 200 });
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -34,7 +44,6 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ message: 'Admin created successfully' });
     } catch (err) {
-        console.error('[CREATE_ADMIN_POST_ERROR]', err);
         return NextResponse.json({ error: 'Failed to create admin' }, { status: 500 });
     }
 }

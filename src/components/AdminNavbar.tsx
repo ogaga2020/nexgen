@@ -1,27 +1,40 @@
 'use client';
 
-import { useRouter } from "next/navigation";
-import axios from "axios";
+import { useRouter, usePathname } from 'next/navigation';
+import axios from 'axios';
 
 export default function AdminNavbar() {
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleLogout = async () => {
-        await axios.post("/api/admin/logout");
-        router.push("/admin");
+        await axios.post('/api/admin/logout');
+        router.push('/admin');
     };
 
+    const link = (href: string, label: string) => (
+        <button
+            onClick={() => router.push(href)}
+            className={`px-3 py-1 rounded-md transition font-medium ${pathname.startsWith(href)
+                    ? 'bg-white text-[var(--primary)]'
+                    : 'text-white hover:bg-[rgba(255,255,255,0.15)]'
+                }`}
+        >
+            {label}
+        </button>
+    );
+
     return (
-        <nav className="bg-primary text-white px-6 py-3 flex justify-between items-center">
+        <nav className="bg-[var(--primary)] text-white px-4 md:px-6 py-3 flex flex-wrap gap-2 justify-between items-center">
             <h1 className="font-bold text-lg">NexGen Admin</h1>
-            <div className="space-x-4">
-                <button onClick={() => router.push("/admin/dashboard")}>Dashboard</button>
-                <button onClick={() => router.push("/admin/students")}>Students</button>
-                <button onClick={() => router.push("/admin/create")}>Create Admin</button>
-                <button onClick={() => router.push("/admin/transaction")}>Transaction</button>
+            <div className="flex flex-wrap items-center gap-2">
+                {link('/admin/dashboard', 'Dashboard')}
+                {link('/admin/students', 'Students')}
+                {link('/admin/create', 'Create Admin')}
+                {link('/admin/transaction', 'Transaction')}
                 <button
                     onClick={handleLogout}
-                    className="bg-white text-primary px-3 py-1 rounded"
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md font-medium transition"
                 >
                     Logout
                 </button>

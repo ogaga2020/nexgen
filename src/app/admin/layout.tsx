@@ -1,5 +1,5 @@
-import '@/styles/globals.css';
 import '@/styles/admin.css';
+import '@/styles/globals.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     return (
