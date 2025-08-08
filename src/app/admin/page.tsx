@@ -31,7 +31,7 @@ export default function AdminEntryPage() {
     const handleCreate = async () => {
         setLoading(true);
         try {
-            const res = await axios.post('/api/admin/create', form);
+            await axios.post('/api/admin/create', form);
             toast.success('Admin created! You can now log in.');
             setForm({ fullName: '', email: '', phone: '', password: '' });
             setTimeout(() => router.push('/admin'), 1000);
@@ -45,7 +45,7 @@ export default function AdminEntryPage() {
     const handleLogin = async () => {
         setLoading(true);
         try {
-            const res = await axios.post('/api/admin/login', {
+            await axios.post('/api/admin/login', {
                 email: form.email,
                 password: form.password,
             });
@@ -59,93 +59,102 @@ export default function AdminEntryPage() {
     };
 
     if (showCreate === null) {
-        return <p className="text-center py-10 text-gray-500">Checking setup...</p>;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-white">
+                <p className="text-gray-500">Checking setup...</p>
+            </div>
+        );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 px-4">
-            <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-md border border-gray-200">
-                <h1 className="text-2xl font-bold font-ui text-center text-primary mb-6">
-                    NexGen Flow & Power
-                </h1>
-                <h2 className="text-lg font-semibold text-center text-gray-800 mb-4">
-                    {showCreate ? 'Create Admin' : 'Admin Login'}
-                </h2>
+        <>
+            <section className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white py-16 px-6 text-center">
+                <h1 className="text-4xl md:text-5xl font-bold mb-2">NexGen Admin</h1>
+                <p className="text-lg md:text-xl opacity-90">
+                    {showCreate ? 'Create the first admin account' : 'Sign in to continue'}
+                </p>
+            </section>
 
-                {showCreate && (
-                    <>
-                        <input
-                            type="text"
-                            name="fullName"
-                            value={form.fullName}
-                            onChange={handleChange}
-                            placeholder="Full Name"
-                            className="input-field mb-3"
-                            autoComplete="name"
-                        />
+            <div className="min-h-[60vh] flex items-start justify-center bg-white px-4">
+                <div className="w-full max-w-md -mt-12 bg-white shadow-lg rounded-xl border p-6 md:p-8">
+                    <h2 className="text-2xl font-semibold text-[var(--primary)] text-center mb-6">
+                        {showCreate ? 'Create Admin' : 'Admin Login'}
+                    </h2>
+
+                    {showCreate && (
+                        <>
+                            <input
+                                type="text"
+                                name="fullName"
+                                value={form.fullName}
+                                onChange={handleChange}
+                                placeholder="Full Name"
+                                className="input-field mb-3 bg-white"
+                                autoComplete="name"
+                            />
+                            <input
+                                type="email"
+                                name="email"
+                                value={form.email}
+                                onChange={handleChange}
+                                placeholder="Email"
+                                className="input-field mb-3 bg-white"
+                                autoComplete="email"
+                            />
+                            <input
+                                type="tel"
+                                name="phone"
+                                value={form.phone}
+                                onChange={handleChange}
+                                placeholder="Phone"
+                                className="input-field mb-3 bg-white"
+                                autoComplete="tel"
+                            />
+                        </>
+                    )}
+
+                    {!showCreate && (
                         <input
                             type="email"
                             name="email"
                             value={form.email}
                             onChange={handleChange}
                             placeholder="Email"
-                            className="input-field mb-3"
+                            className="input-field mb-3 bg-white"
                             autoComplete="email"
                         />
-                        <input
-                            type="tel"
-                            name="phone"
-                            value={form.phone}
-                            onChange={handleChange}
-                            placeholder="Phone"
-                            className="input-field mb-3"
-                            autoComplete="tel"
-                        />
-                    </>
-                )}
+                    )}
 
-                {!showCreate && (
                     <input
-                        type="email"
-                        name="email"
-                        value={form.email}
+                        type="password"
+                        name="password"
+                        value={form.password}
                         onChange={handleChange}
-                        placeholder="Email"
-                        className="input-field mb-3"
-                        autoComplete="email"
+                        placeholder="Password"
+                        className="input-field mb-6 bg-white"
+                        autoComplete="current-password"
                     />
-                )}
 
-                <input
-                    type="password"
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder="Password"
-                    className="input-field mb-4"
-                    autoComplete="current-password"
-                />
+                    <button
+                        onClick={showCreate ? handleCreate : handleLogin}
+                        className="w-full py-3 rounded-md bg-[var(--primary)] text-white font-semibold hover:bg-[var(--primary-hover)] transition disabled:opacity-60"
+                        disabled={loading}
+                    >
+                        {loading ? 'Processing...' : showCreate ? 'Create Admin' : 'Login'}
+                    </button>
 
-                <button
-                    onClick={showCreate ? handleCreate : handleLogin}
-                    className="w-full bg-primary text-white py-2 rounded-md hover:bg-blue-800 transition"
-                    disabled={loading}
-                >
-                    {loading ? 'Processing...' : showCreate ? 'Create Admin' : 'Login'}
-                </button>
-
-                {!showCreate && (
-                    <div className="text-sm text-right mb-4">
-                        <button
-                            onClick={() => router.push('/admin/forgot')}
-                            className="text-blue-600 hover:underline focus:outline-none"
-                        >
-                            Forgot Password?
-                        </button>
-                    </div>
-                )}
-
+                    {!showCreate && (
+                        <div className="text-sm text-right mt-4">
+                            <button
+                                onClick={() => router.push('/admin/forgot')}
+                                className="text-[var(--accent)] hover:underline"
+                            >
+                                Forgot Password?
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 }
