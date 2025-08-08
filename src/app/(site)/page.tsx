@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Accordion from './Accordion';
+
 
 export default function HomePage() {
   const router = useRouter();
@@ -10,7 +12,7 @@ export default function HomePage() {
       <div className="font-ui">
         <section className="bg-gradient-to-br from-blue-900 to-blue-600 text-white py-20 px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">NexGen Flow & Power</h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto">Empowering the next generation of professionals in Electrical, Plumbing, and Solar Systems</p>
+          <p className="text-lg md:text-xl max-w-2xl mx-auto">Empowering the next generation of professionals in Electrical, Solar Systems and plumbing.</p>
           <button onClick={() => router.push('/register')} className="mt-8 bg-white text-blue-800 px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition">
             Register Now
           </button>
@@ -18,14 +20,7 @@ export default function HomePage() {
 
         <section className="py-16 px-4 bg-white text-center">
           <h2 className="text-3xl font-semibold mb-10 text-primary">What We Offer</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {['Electrical Installation', 'Plumbing Systems', 'Solar Energy'].map((service) => (
-              <div key={service} className="shadow-lg rounded-lg p-6 border">
-                <h3 className="text-xl font-bold mb-2 text-primary">{service}</h3>
-                <p className="text-gray-600">Hands-on, expert-led training to equip you for real-world success.</p>
-              </div>
-            ))}
-          </div>
+          <Accordion />
         </section>
 
         <section className="bg-gray-50 py-16 px-4 text-center">
