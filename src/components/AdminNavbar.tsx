@@ -15,9 +15,9 @@ export default function AdminNavbar() {
     const link = (href: string, label: string) => (
         <button
             onClick={() => router.push(href)}
-            className={`px-3 py-1 rounded-md transition font-medium ${pathname.startsWith(href)
-                    ? 'bg-white text-[var(--primary)]'
-                    : 'text-white hover:bg-[rgba(255,255,255,0.15)]'
+            className={`px-3 py-2 rounded-md transition font-medium ${pathname.startsWith(href)
+                ? 'bg-white text-[var(--primary)]'
+                : 'text-white hover:bg-[rgba(255,255,255,0.15)]'
                 }`}
         >
             {label}
@@ -30,6 +30,7 @@ export default function AdminNavbar() {
             <div className="flex flex-wrap items-center gap-2">
                 {link('/admin/dashboard', 'Dashboard')}
                 {link('/admin/students', 'Students')}
+                {link('/admin/media', 'Media')}
                 {link('/admin/create', 'Create Admin')}
                 {link('/admin/transaction', 'Transaction')}
                 <button
