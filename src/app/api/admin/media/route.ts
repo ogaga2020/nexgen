@@ -14,6 +14,8 @@ export async function POST(req: Request) {
         const form = await req.formData();
         const file = form.get('file') as File | null;
         const categoryRaw = (form.get('category') as string | null) || 'plumbing';
+        const uploadedBy = (form.get('uploadedBy') as string | null) || 'Admin';
+
         const category = ['electric', 'solar', 'plumbing'].includes(categoryRaw.toLowerCase())
             ? (categoryRaw.toLowerCase() as 'electric' | 'solar' | 'plumbing')
             : 'plumbing';
@@ -25,23 +27,47 @@ export async function POST(req: Request) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        const url: string = await new Promise((resolve, reject) => {
+        const uploaded = await new Promise<any>((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
                 {
                     folder: `nextgen/${category}`,
                     resource_type: 'auto',
                     use_filename: true,
+                    context: { uploaded_by: uploadedBy },
                 },
                 (error, result) => {
                     if (error || !result) return reject(error);
-                    resolve(result.secure_url);
+                    resolve(result);
                 }
             );
             stream.end(buffer);
         });
 
-        return NextResponse.json({ url });
+        return NextResponse.json({
+            url: uploaded.secure_url,
+            publicId: uploaded.public_id,
+            createdAt: uploaded.created_at,
+            uploadedBy,
+        });
     } catch (err) {
+        console.error('[MEDIA_UPLOAD_ERROR]', err);
         return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: Request) {
+    try {
+        const { publicId } = await req.json();
+
+        if (!publicId) {
+            return NextResponse.json({ error: 'publicId is required' }, { status: 400 });
+        }
+
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        console.error('[MEDIA_DELETE_ERROR]', err);
+        return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
     }
 }

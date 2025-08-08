@@ -1,96 +1,287 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import AdminNavbar from '@/components/AdminNavbar';
+
+type Category = 'plumbing' | 'electric' | 'solar';
+
+type MediaItem = {
+    url: string;
+    type: 'image' | 'video';
+    category: Category;
+    publicId?: string;
+    createdAt?: string;
+    uploadedBy?: string;
+};
 
 export default function MediaUploadPage() {
     const [file, setFile] = useState<File | null>(null);
-    const [category, setCategory] = useState('plumbing');
+    const [category, setCategory] = useState<Category>('plumbing');
     const [preview, setPreview] = useState('');
     const [uploading, setUploading] = useState(false);
-    const [uploadedUrl, setUploadedUrl] = useState('');
+
+    const [media, setMedia] = useState<MediaItem[]>([]);
+    const [search, setSearch] = useState('');
+    const [active, setActive] = useState<'all' | Category>('all');
+    const [viewing, setViewing] = useState<MediaItem | null>(null);
+
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const load = async () => {
+        const res = await axios.get<MediaItem[]>('/api/gallery');
+        setMedia(res.data || []);
+    };
+
+    useEffect(() => {
+        load();
+    }, []);
+
+    const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0] || null;
+        setFile(f);
+        setPreview(f ? URL.createObjectURL(f) : '');
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) return alert('Please select a file.');
-
+        if (!file) return;
         const formData = new FormData();
         formData.append('file', file);
         formData.append('category', category);
-
         try {
             setUploading(true);
-            const res = await axios.post('/api/admin/media', formData);
-            setUploadedUrl(res.data.url);
-        } catch (err) {
-            alert('Upload failed');
+            await axios.post('/api/admin/media', formData);
+            setFile(null);
+            setPreview('');
+            if (inputRef.current) inputRef.current.value = '';
+            await load();
         } finally {
             setUploading(false);
         }
     };
 
+    const handleDelete = async (item: MediaItem) => {
+        const ok = confirm('Delete this media?');
+        if (!ok) return;
+        await axios.delete('/api/admin/media', { data: { publicId: item.publicId } });
+        setMedia((m) => m.filter((x) => x.publicId !== item.publicId));
+    };
+
+    const filtered = useMemo(() => {
+        let out = media.slice();
+        if (active !== 'all') out = out.filter((m) => m.category === active);
+        if (search.trim()) {
+            const s = search.trim().toLowerCase();
+            out = out.filter(
+                (m) =>
+                    m.url.toLowerCase().includes(s) ||
+                    (m.uploadedBy || '').toLowerCase().includes(s) ||
+                    m.category.includes(s as Category)
+            );
+        }
+        out.sort((a, b) => {
+            const da = a.createdAt ? +new Date(a.createdAt) : 0;
+            const db = b.createdAt ? +new Date(b.createdAt) : 0;
+            return db - da;
+        });
+        return out;
+    }, [media, active, search]);
+
+    const pill = (key: 'all' | Category, label: string) => (
+        <button
+            key={key}
+            onClick={() => setActive(key)}
+            className={`px-3 py-1 rounded-md border transition ${active === key
+                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+        >
+            {label}
+        </button>
+    );
+
     return (
-        <div className="max-w-xl mx-auto py-10 px-4">
-            <h1 className="text-3xl font-bold mb-6 text-primary">Upload Media</h1>
+        <>
+            <AdminNavbar />
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block mb-1 font-semibold">Select Category</label>
-                    <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="input-field w-full"
-                    >
-                        <option value="plumbing">Plumbing</option>
-                        <option value="electric">Electric</option>
-                        <option value="solar">Solar</option>
-                    </select>
+            <div className="max-w-7xl mx-auto py-10 px-4">
+                <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
+                    <h1 className="text-3xl font-bold">Media</h1>
+                    <p className="text-lg mt-1">Upload and manage gallery assets</p>
                 </div>
 
-                <div>
-                    <label className="block mb-1 font-semibold">Select File</label>
+                <form
+                    onSubmit={handleSubmit}
+                    className="grid md:grid-cols-3 gap-4 bg-white p-4 border rounded-lg shadow-sm mb-8"
+                >
+                    <div>
+                        <label className="block mb-1 font-medium text-gray-700">Category</label>
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value as Category)}
+                            className="input-field w-full bg-white"
+                        >
+                            <option value="plumbing">Plumbing</option>
+                            <option value="electric">Electric</option>
+                            <option value="solar">Solar</option>
+                        </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block mb-1 font-medium text-gray-700">File</label>
+                        <input
+                            ref={inputRef}
+                            type="file"
+                            accept="image/*,video/*"
+                            onChange={onFile}
+                            className="input-field w-full bg-white"
+                        />
+                    </div>
+
+                    {preview && (
+                        <div className="md:col-span-3">
+                            {file?.type.startsWith('video') ? (
+                                <video src={preview} controls className="w-full rounded-md border max-h-[60vh] object-contain" />
+                            ) : (
+                                <img src={preview} alt="Preview" className="w-full rounded-md border max-h-[60vh] object-contain" />
+                            )}
+                        </div>
+                    )}
+
+                    <div className="md:col-span-3 flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={uploading || !file}
+                            className="bg-[var(--primary)] text-white px-6 py-2 rounded-md hover:bg-[var(--primary-hover)] disabled:opacity-60"
+                        >
+                            {uploading ? 'Uploading…' : 'Upload'}
+                        </button>
+                    </div>
+                </form>
+
+                <div className="flex flex-wrap items-center gap-2 mb-4">
                     <input
-                        type="file"
-                        accept="image/*,video/*"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            setFile(file || null);
-                            if (file) {
-                                setPreview(URL.createObjectURL(file));
-                            }
-                        }}
-                        className="input-field w-full"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search (url, uploader, category)…"
+                        className="input-field bg-white w-full md:w-80"
                     />
+                    {pill('all', 'All')}
+                    {pill('electric', 'Electric')}
+                    {pill('solar', 'Solar')}
+                    {pill('plumbing', 'Plumbing')}
                 </div>
 
-                {preview && (
-                    <div className="mt-4">
-                        <p className="font-semibold mb-2">Preview:</p>
-                        {file?.type.startsWith('video') ? (
-                            <video src={preview} controls className="w-full rounded shadow" />
-                        ) : (
-                            <img src={preview} alt="Preview" className="w-full rounded shadow" />
-                        )}
+                <div className="overflow-x-auto bg-white border rounded-lg shadow-sm">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-700">
+                            <tr>
+                                <th className="px-4 py-3 text-left">Media</th>
+                                <th className="px-4 py-3">Type</th>
+                                <th className="px-4 py-3">Category</th>
+                                <th className="px-4 py-3">Uploaded By</th>
+                                <th className="px-4 py-3">Date</th>
+                                <th className="px-4 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map((m) => (
+                                <tr key={m.publicId || m.url} className="border-t">
+                                    <td className="px-4 py-2 text-left">
+                                        <button
+                                            onClick={() => setViewing(m)}
+                                            className="inline-flex items-center gap-3 hover:underline"
+                                            title="View"
+                                        >
+                                            {m.type === 'image' ? (
+                                                <img src={m.url} alt="" className="w-10 h-10 object-cover rounded border" />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded border grid place-items-center">
+                                                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-gray-600">
+                                                        <path fill="currentColor" d="M8 5v14l11-7z" />
+                                                    </svg>
+                                                </div>
+                                            )}
+                                            <span className="max-w-[28ch] truncate">{m.url}</span>
+                                        </button>
+                                    </td>
+                                    <td className="px-4 py-2 capitalize">{m.type}</td>
+                                    <td className="px-4 py-2 capitalize">{m.category}</td>
+                                    <td className="px-4 py-2">{m.uploadedBy || '—'}</td>
+                                    <td className="px-4 py-2">{m.createdAt ? new Date(m.createdAt).toLocaleString() : '—'}</td>
+                                    <td className="px-4 py-2 space-x-3">
+                                        <button onClick={() => setViewing(m)} className="text-blue-600 hover:underline">
+                                            View
+                                        </button>
+                                        <button onClick={() => handleDelete(m)} className="text-red-600 hover:underline">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filtered.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
+                                        No media found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {viewing && (
+                    <div
+                        className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+                        onClick={() => setViewing(null)}
+                    >
+                        <div
+                            className="relative bg-white w-full max-w-5xl rounded-xl shadow-2xl overflow-y-auto max-h-[90vh]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="px-5 py-4 border-b">
+                                <h3 className="text-lg font-semibold text-gray-800">Preview</h3>
+                            </div>
+
+                            <div className="p-4">
+                                <div className="w-full max-h-[70vh] grid place-items-center overflow-hidden">
+                                    {viewing.type === 'image' ? (
+                                        <img src={viewing.url} alt="" className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+                                    ) : (
+                                        <video src={viewing.url} controls className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+                                    )}
+                                </div>
+
+                                <div className="mt-4 text-sm text-gray-700 space-y-1">
+                                    <div>
+                                        <b>Category:</b> {viewing.category}
+                                    </div>
+                                    <div>
+                                        <b>Uploaded:</b> {viewing.createdAt ? new Date(viewing.createdAt).toLocaleString() : '—'}
+                                    </div>
+                                    <div>
+                                        <b>By:</b> {viewing.uploadedBy || '—'}
+                                    </div>
+                                    <a href={viewing.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                                        Open in new tab
+                                    </a>
+                                </div>
+
+                                <div className="mt-5 flex justify-end">
+                                    <button
+                                        onClick={() => setViewing(null)}
+                                        className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
-
-                <button
-                    type="submit"
-                    className="bg-primary text-white px-6 py-2 rounded disabled:opacity-60"
-                    disabled={uploading}
-                >
-                    {uploading ? 'Uploading...' : 'Upload'}
-                </button>
-            </form>
-
-            {uploadedUrl && (
-                <div className="mt-6">
-                    <p className="text-green-600 font-semibold">Upload successful!</p>
-                    <a href={uploadedUrl} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">
-                        View File
-                    </a>
-                </div>
-            )}
-        </div>
+            </div>
+        </>
     );
 }
+
