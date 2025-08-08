@@ -1,14 +1,5 @@
-import { connectDB } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { IncomingForm } from 'formidable';
-import { promisify } from 'util';
-
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
@@ -16,31 +7,41 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
-const parseForm = promisify((req: any, cb: any) =>
-    new IncomingForm({ multiples: false }).parse(req, cb)
-);
+export const runtime = 'nodejs';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     try {
-        await connectDB();
+        const form = await req.formData();
+        const file = form.get('file') as File | null;
+        const categoryRaw = (form.get('category') as string | null) || 'plumbing';
+        const category = ['electric', 'solar', 'plumbing'].includes(categoryRaw.toLowerCase())
+            ? (categoryRaw.toLowerCase() as 'electric' | 'solar' | 'plumbing')
+            : 'plumbing';
 
-        const [fields, files] = await parseForm(req) as [any, any];
-        const file = files.file?.[0];
-        const category = fields.category?.[0];
-
-        if (!file || !category) {
-            return NextResponse.json({ error: 'Missing file or category' }, { status: 400 });
+        if (!file) {
+            return NextResponse.json({ error: 'No file' }, { status: 400 });
         }
 
-        const cloudinaryPath = `nextgen/${category.toLowerCase()}`;
-        const result = await cloudinary.uploader.upload(file.filepath, {
-            folder: cloudinaryPath,
-            use_filename: true,
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const url: string = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                {
+                    folder: `nextgen/${category}`,
+                    resource_type: 'auto',
+                    use_filename: true,
+                },
+                (error, result) => {
+                    if (error || !result) return reject(error);
+                    resolve(result.secure_url);
+                }
+            );
+            stream.end(buffer);
         });
 
-        return NextResponse.json({ url: result.secure_url });
+        return NextResponse.json({ url });
     } catch (err) {
-        console.error('[MEDIA_UPLOAD_ERROR]', err);
-        return NextResponse.json({ error: 'Failed to upload media' }, { status: 500 });
+        return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
 }

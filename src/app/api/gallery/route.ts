@@ -7,11 +7,15 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
-const categories = ['electric', 'solar', 'plumbing'];
+const categories = ['electric', 'solar', 'plumbing'] as const;
 
 export async function GET() {
     try {
-        const allMedia = [];
+        const allMedia: Array<{
+            url: string;
+            type: 'image' | 'video';
+            category: (typeof categories)[number];
+        }> = [];
 
         for (const category of categories) {
             const result = await cloudinary.search
@@ -20,9 +24,9 @@ export async function GET() {
                 .max_results(20)
                 .execute();
 
-            const resources = result.resources.map((r: any) => ({
-                url: r.secure_url,
-                type: r.resource_type === 'video' ? 'video' : 'image',
+            const resources = (result.resources as any[]).map((r) => ({
+                url: r.secure_url as string,
+                type: r.resource_type === 'video' ? 'video' as const : 'image' as const,
                 category,
             }));
 
@@ -30,8 +34,7 @@ export async function GET() {
         }
 
         return NextResponse.json(allMedia);
-    } catch (err) {
-        console.error('[GALLERY_FETCH_ERROR]', err);
+    } catch {
         return NextResponse.json([], { status: 500 });
     }
 }
