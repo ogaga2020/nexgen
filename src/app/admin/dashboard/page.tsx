@@ -1,110 +1,174 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { useNotifier } from '@/components/Notifier';
 
-export type User = {
+type User = {
     _id: string;
     fullName: string;
     email: string;
     phone: string;
     trainingType: string;
     trainingDuration: number;
-    paymentStatus: 'not_paid' | 'partially_paid' | 'fully_paid';
+    paymentStatus: 'not_paid' | 'partially_paid' | 'fully_paid' | string;
+};
+
+type Category = 'plumbing' | 'electric' | 'solar';
+type MediaItem = {
+    url: string;
+    type: 'image' | 'video';
+    category: Category;
+    publicId?: string;
+    createdAt?: string;
 };
 
 export default function AdminDashboard() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [filter, setFilter] =
-        useState<'all' | 'not_paid' | 'partially_paid' | 'fully_paid'>('all');
+    const { error } = useNotifier();
     const router = useRouter();
 
+    const [users, setUsers] = useState<User[]>([]);
+    const [media, setMedia] = useState<MediaItem[]>([]);
+    const [txSummary, setTxSummary] = useState<{ totalAmount?: number; success?: number; failed?: number } | null>(null);
+
     useEffect(() => {
-        axios.get('/api/admin/users').then((res) => setUsers(res.data.users || []));
-    }, []);
+        axios.get('/api/admin/users', { headers: { 'cache-control': 'no-cache' } })
+            .then(r => setUsers(r.data.users || []))
+            .catch(e => error(e?.response?.data?.error || e?.message || 'Failed to load students'));
+        axios.get('/api/gallery', { params: { t: Date.now() } })
+            .then(r => setMedia(r.data || []))
+            .catch(e => error(e?.response?.data?.error || e?.message || 'Failed to load media'));
+        axios.get('/api/admin/transactions/summary')
+            .then(r => setTxSummary(r.data || {}))
+            .catch(() => setTxSummary(null));
+    }, [error]);
 
-    const filteredUsers = filter === 'all' ? users : users.filter((u) => u.paymentStatus === filter);
+    const studentStats = useMemo(() => {
+        const total = users.length;
+        const fully = users.filter(u => u.paymentStatus === 'fully_paid').length;
+        const partial = users.filter(u => u.paymentStatus === 'partially_paid').length;
+        const notpaid = users.filter(u => u.paymentStatus === 'not_paid').length;
+        return { total, fully, partial, notpaid };
+    }, [users]);
 
-    const pill = (key: typeof filter, label: string) => (
-        <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`px-3 py-1 rounded-md border transition ${filter === key
-                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-        >
-            {label}
-        </button>
+    const mediaStats = useMemo(() => {
+        const byType = {
+            images: media.filter(m => m.type === 'image').length,
+            videos: media.filter(m => m.type === 'video').length,
+        };
+        const cat = { plumbing: { image: 0, video: 0 }, electric: { image: 0, video: 0 }, solar: { image: 0, video: 0 } };
+        media.forEach(m => {
+            const key = m.category as Category;
+            if (m.type === 'image') cat[key].image += 1;
+            else cat[key].video += 1;
+        });
+        return { byType, cat };
+    }, [media]);
+
+    const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 100) : 0);
+
+    const StatCard = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <div className="text-sm text-gray-500">{label}</div>
+            <div className="mt-1 text-3xl font-semibold">{value}</div>
+            {sub ? <div className="mt-1 text-xs text-gray-500">{sub}</div> : null}
+        </div>
     );
 
+    const StackedBar = ({ image, video }: { image: number; video: number }) => {
+        const total = image + video;
+        const imgW = total ? (image / total) * 100 : 0;
+        const vidW = total ? (video / total) * 100 : 0;
+        return (
+            <div className="w-full h-3 rounded bg-gray-100 overflow-hidden">
+                <div className="h-3 bg-blue-500 inline-block" style={{ width: `${imgW}%` }} />
+                <div className="h-3 bg-purple-500 inline-block" style={{ width: `${vidW}%` }} />
+            </div>
+        );
+    };
+
     return (
-        <>
-            <section className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white py-10 px-6">
-                <h1 className="text-3xl md:text-4xl font-bold">Dashboard</h1>
-                <p className="opacity-90">Overview of registrations and payments</p>
-            </section>
+        <div className="max-w-7xl mx-auto py-10 px-4">
+            <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
+                <h1 className="text-3xl font-bold">Dashboard</h1>
+                <p className="text-lg mt-1">Key metrics and quick actions</p>
+            </div>
 
-            <div className="max-w-6xl mx-auto py-8 px-4">
-                <div className="flex flex-wrap gap-2 mb-6">
-                    {pill('all', 'ALL')}
-                    {pill('fully_paid', 'FULLY PAID')}
-                    {pill('partially_paid', 'PARTIALLY PAID')}
-                    {pill('not_paid', 'NOT PAID')}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <StatCard label="Students" value={studentStats.total} sub={`${studentStats.fully} fully • ${studentStats.partial} partial • ${studentStats.notpaid} not paid`} />
+                <StatCard label="Images" value={mediaStats.byType.images} sub="Gallery items" />
+                <StatCard label="Videos" value={mediaStats.byType.videos} sub="Gallery items" />
+                <StatCard label="Payments (₦)" value={txSummary?.totalAmount ? txSummary.totalAmount.toLocaleString() : '—'} sub={`${txSummary?.success ?? '—'} success • ${txSummary?.failed ?? '—'} failed`} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div className="rounded-xl border bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">Student Payments</h3>
+                        <button onClick={() => router.push('/admin/students')} className="text-sm text-blue-600 hover:underline">View students</button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <div className="text-2xl font-semibold">{studentStats.fully}</div>
+                            <div className="text-sm text-gray-500">Fully</div>
+                            <div className="mt-1 text-xs text-gray-500">{pct(studentStats.fully, studentStats.total)}%</div>
+                        </div>
+                        <div>
+                            <div className="text-2xl font-semibold">{studentStats.partial}</div>
+                            <div className="text-sm text-gray-500">Partial</div>
+                            <div className="mt-1 text-xs text-gray-500">{pct(studentStats.partial, studentStats.total)}%</div>
+                        </div>
+                        <div>
+                            <div className="text-2xl font-semibold">{studentStats.notpaid}</div>
+                            <div className="text-sm text-gray-500">Not paid</div>
+                            <div className="mt-1 text-xs text-gray-500">{pct(studentStats.notpaid, studentStats.total)}%</div>
+                        </div>
+                    </div>
+                    <div className="mt-5 h-3 w-full rounded bg-gray-100 overflow-hidden">
+                        <div className="h-3 bg-emerald-500 inline-block" style={{ width: `${pct(studentStats.fully, studentStats.total)}%` }} />
+                        <div className="h-3 bg-amber-400 inline-block" style={{ width: `${pct(studentStats.partial, studentStats.total)}%` }} />
+                        <div className="h-3 bg-gray-400 inline-block" style={{ width: `${pct(studentStats.notpaid, studentStats.total)}%` }} />
+                    </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-gray-700">
-                            <tr>
-                                <th className="px-4 py-2 text-left">Name</th>
-                                <th className="px-4 py-2">Email</th>
-                                <th className="px-4 py-2">Phone</th>
-                                <th className="px-4 py-2">Type</th>
-                                <th className="px-4 py-2">Duration</th>
-                                <th className="px-4 py-2">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredUsers.map((user) => (
-                                <tr key={user._id} className="border-t">
-                                    <td className="px-4 py-2 text-left">{user.fullName}</td>
-                                    <td className="px-4 py-2">{user.email}</td>
-                                    <td className="px-4 py-2">{user.phone}</td>
-                                    <td className="px-4 py-2">{user.trainingType}</td>
-                                    <td className="px-4 py-2">{user.trainingDuration} months</td>
-                                    <td className="px-4 py-2">
-                                        <span
-                                            className={`px-2 py-1 rounded text-xs font-semibold ${user.paymentStatus === 'fully_paid'
-                                                ? 'bg-[var(--success)] text-white'
-                                                : user.paymentStatus === 'partially_paid'
-                                                    ? 'bg-[var(--warning)] text-black'
-                                                    : 'bg-[var(--danger)] text-white'
-                                                }`}
-                                        >
-                                            {user.paymentStatus.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    {filteredUsers.length === 0 && (
-                        <p className="text-center text-gray-500 py-10">No users found.</p>
-                    )}
-                </div>
-
-                <div className="mt-6 text-center">
-                    <button
-                        onClick={() => router.push('/admin/students')}
-                        className="bg-[var(--primary)] text-white px-6 py-2 rounded-md hover:bg-[var(--primary-hover)]"
-                    >
-                        View All Students
-                    </button>
+                <div className="rounded-xl border bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">Media by Category</h3>
+                        <button onClick={() => router.push('/admin/media')} className="text-sm text-blue-600 hover:underline">Manage media</button>
+                    </div>
+                    <div className="space-y-4">
+                        {(['plumbing', 'electric', 'solar'] as Category[]).map(cat => (
+                            <div key={cat}>
+                                <div className="flex items-center justify-between mb-1 text-sm">
+                                    <span className="capitalize">{cat}</span>
+                                    <span className="text-gray-500">
+                                        {mediaStats.cat[cat].image} img • {mediaStats.cat[cat].video} vid
+                                    </span>
+                                </div>
+                                <StackedBar image={mediaStats.cat[cat].image} video={mediaStats.cat[cat].video} />
+                            </div>
+                        ))}
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                            <span className="inline-block w-3 h-3 bg-blue-500 rounded-sm" /> Image
+                            <span className="inline-block w-3 h-3 bg-purple-500 rounded-sm" /> Video
+                        </div>
+                    </div>
                 </div>
             </div>
-        </>
+
+            <div className="rounded-xl border bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Transactions</h3>
+                    <button onClick={() => router.push('/admin/transaction')} className="text-sm text-blue-600 hover:underline">View transactions</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard label="Total Received" value={txSummary?.totalAmount ? `₦${txSummary.totalAmount.toLocaleString()}` : '—'} />
+                    <StatCard label="Successful" value={txSummary?.success ?? '—'} />
+                    <StatCard label="Failed" value={txSummary?.failed ?? '—'} />
+                </div>
+                {!txSummary && <div className="mt-3 text-xs text-gray-500">No transaction summary API detected.</div>}
+            </div>
+        </div>
     );
 }

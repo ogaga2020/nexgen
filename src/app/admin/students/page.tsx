@@ -5,6 +5,7 @@ import axios from 'axios';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import AdminNavbar from '@/components/AdminNavbar';
+import { useNotifier } from '@/components/Notifier';
 
 type Guarantor = {
     fullName: string;
@@ -33,15 +34,19 @@ export default function StudentsPage() {
     const [filter, setFilter] = useState<'all' | 'fully_paid' | 'partially_paid'>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+    const { error, success } = useNotifier();
 
     const filterWrapRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         axios
-            .get('/api/admin/users')
-            .then((res) => setUsers(res.data.users))
-            .catch(() => setUsers([]));
-    }, []);
+            .get('/api/admin/users', { headers: { 'cache-control': 'no-cache' } })
+            .then((res) => setUsers(res.data.users || []))
+            .catch((e) => {
+                setUsers([]);
+                error(e?.response?.data?.error || e?.message || 'Failed to load students');
+            });
+    }, [error]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -73,25 +78,36 @@ export default function StudentsPage() {
         try {
             await axios.delete(`/api/admin/users/${id}`);
             setUsers((prev) => prev.filter((u) => u._id !== id));
-        } catch {
-            alert('Failed to delete');
+            success('Student deleted');
+        } catch (e: any) {
+            error(e?.response?.data?.error || e?.message || 'Failed to delete');
         }
     };
 
     const handleExport = () => {
-        const sheetData = filteredUsers.map((u) => ({
-            Name: u.fullName,
-            Email: u.email,
-            Phone: u.phone,
-            Training: u.trainingType,
-            Duration: `${u.trainingDuration} months`,
-            Status: u.paymentStatus === 'fully_paid' ? 'Fully paid' : u.paymentStatus === 'partially_paid' ? 'Partially paid' : '',
-        }));
-        const ws = XLSX.utils.json_to_sheet(sheetData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Students');
-        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        saveAs(new Blob([excelBuffer], { type: 'application/octet-stream' }), 'students.xlsx');
+        try {
+            const sheetData = filteredUsers.map((u) => ({
+                Name: u.fullName,
+                Email: u.email,
+                Phone: u.phone,
+                Training: u.trainingType,
+                Duration: `${u.trainingDuration} months`,
+                Status:
+                    u.paymentStatus === 'fully_paid'
+                        ? 'Fully paid'
+                        : u.paymentStatus === 'partially_paid'
+                            ? 'Partially paid'
+                            : '',
+            }));
+            const ws = XLSX.utils.json_to_sheet(sheetData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Students');
+            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            saveAs(new Blob([excelBuffer], { type: 'application/octet-stream' }), 'students.xlsx');
+            success(`Exported ${sheetData.length} students`);
+        } catch (e: any) {
+            error(e?.message || 'Failed to export');
+        }
     };
 
     const labelFor = (f: 'all' | 'fully_paid' | 'partially_paid') =>
