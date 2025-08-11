@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
-import AdminNavbar from '@/components/AdminNavbar';
 import { useNotifier } from '@/components/Notifier';
 
 type Guarantor = {
@@ -130,8 +129,6 @@ export default function StudentsPage() {
 
     return (
         <>
-            <AdminNavbar />
-
             <div className="max-w-7xl mx-auto py-10 px-4">
                 <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
                     <h1 className="text-3xl font-bold">Students</h1>

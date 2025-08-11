@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import AdminNavbar from '@/components/AdminNavbar';
 import { useNotifier } from '@/components/Notifier';
 
 type Category = 'plumbing' | 'electric' | 'solar';
@@ -131,7 +130,6 @@ export default function MediaUploadPage() {
 
     return (
         <>
-            <AdminNavbar />
             <div className="max-w-7xl mx-auto py-10 px-4">
                 <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
                     <h1 className="text-3xl font-bold">Media</h1>
