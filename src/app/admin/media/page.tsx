@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import AdminNavbar from '@/components/AdminNavbar';
+import { useNotifier } from '@/components/Notifier';
 
 type Category = 'plumbing' | 'electric' | 'solar';
 
@@ -15,7 +16,12 @@ type MediaItem = {
     uploadedBy?: string;
 };
 
+const MAX_MB = 20;
+const MAX_BYTES = MAX_MB * 1024 * 1024;
+
 export default function MediaUploadPage() {
+    const { success, error } = useNotifier();
+
     const [file, setFile] = useState<File | null>(null);
     const [category, setCategory] = useState<Category>('plumbing');
     const [preview, setPreview] = useState('');
@@ -29,7 +35,7 @@ export default function MediaUploadPage() {
     const inputRef = useRef<HTMLInputElement | null>(null);
 
     const load = async () => {
-        const res = await axios.get<MediaItem[]>('/api/gallery');
+        const res = await axios.get<MediaItem[]>('/api/gallery', { params: { t: Date.now() } });
         setMedia(res.data || []);
     };
 
@@ -39,6 +45,13 @@ export default function MediaUploadPage() {
 
     const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0] || null;
+        if (f && f.size > MAX_BYTES) {
+            error(`File is too large. Max ${MAX_MB}MB.`);
+            if (inputRef.current) inputRef.current.value = '';
+            setFile(null);
+            setPreview('');
+            return;
+        }
         setFile(f);
         setPreview(f ? URL.createObjectURL(f) : '');
     };
@@ -46,16 +59,25 @@ export default function MediaUploadPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!file) return;
+        if (file.size > MAX_BYTES) {
+            error(`File is too large. Max ${MAX_MB}MB.`);
+            return;
+        }
         const formData = new FormData();
         formData.append('file', file);
         formData.append('category', category);
         try {
             setUploading(true);
-            await axios.post('/api/admin/media', formData);
+            const { data } = await axios.post<MediaItem>('/api/admin/media', formData);
+            success('Upload successful');
+            setMedia((prev) => [data, ...prev]);
+            setTimeout(() => load(), 300);
             setFile(null);
             setPreview('');
             if (inputRef.current) inputRef.current.value = '';
-            await load();
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.message || 'Upload failed';
+            error(String(msg));
         } finally {
             setUploading(false);
         }
@@ -64,8 +86,14 @@ export default function MediaUploadPage() {
     const handleDelete = async (item: MediaItem) => {
         const ok = confirm('Delete this media?');
         if (!ok) return;
-        await axios.delete('/api/admin/media', { data: { publicId: item.publicId } });
-        setMedia((m) => m.filter((x) => x.publicId !== item.publicId));
+        try {
+            await axios.delete('/api/admin/media', { data: { publicId: item.publicId, type: item.type } });
+            setMedia((m) => m.filter((x) => x.publicId !== item.publicId));
+            success('Media deleted');
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.message || 'Delete failed';
+            error(String(msg));
+        }
     };
 
     const filtered = useMemo(() => {
@@ -104,7 +132,6 @@ export default function MediaUploadPage() {
     return (
         <>
             <AdminNavbar />
-
             <div className="max-w-7xl mx-auto py-10 px-4">
                 <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
                     <h1 className="text-3xl font-bold">Media</h1>
@@ -137,11 +164,12 @@ export default function MediaUploadPage() {
                             onChange={onFile}
                             className="input-field w-full bg-white"
                         />
+                        <p className="text-xs text-gray-500 mt-1">Max size: {MAX_MB}MB</p>
                     </div>
 
                     {preview && (
                         <div className="md:col-span-3">
-                            {file?.type.startsWith('video') ? (
+                            {file?.type?.startsWith('video') ? (
                                 <video src={preview} controls className="w-full rounded-md border max-h-[60vh] object-contain" />
                             ) : (
                                 <img src={preview} alt="Preview" className="w-full rounded-md border max-h-[60vh] object-contain" />
@@ -178,11 +206,10 @@ export default function MediaUploadPage() {
                         <thead className="bg-gray-50 text-gray-700">
                             <tr>
                                 <th className="px-4 py-3 text-left">Media</th>
-                                <th className="px-4 py-3">Type</th>
-                                <th className="px-4 py-3">Category</th>
-                                <th className="px-4 py-3">Uploaded By</th>
-                                <th className="px-4 py-3">Date</th>
-                                <th className="px-4 py-3">Actions</th>
+                                <th className="px-4 py-3 md:table-cell">Type</th>
+                                <th className="px-4 py-3 hidden md:table-cell">Category</th>
+                                <th className="px-4 py-3 hidden md:table-cell">Date</th>
+                                <th className="px-4 py-3 text-right md:text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -195,34 +222,31 @@ export default function MediaUploadPage() {
                                             title="View"
                                         >
                                             {m.type === 'image' ? (
-                                                <img src={m.url} alt="" className="w-10 h-10 object-cover rounded border" />
+                                                <img src={m.url} alt="" className="w-12 h-12 md:w-10 md:h-10 object-cover rounded border" />
                                             ) : (
-                                                <div className="w-10 h-10 rounded border grid place-items-center">
+                                                <div className="w-12 h-12 md:w-10 md:h-10 rounded border grid place-items-center">
                                                     <svg viewBox="0 0 24 24" className="w-5 h-5 text-gray-600">
                                                         <path fill="currentColor" d="M8 5v14l11-7z" />
                                                     </svg>
                                                 </div>
                                             )}
-                                            <span className="max-w-[28ch] truncate">{m.url}</span>
+                                            <span className="hidden md:inline max-w-[28ch] truncate">{m.url}</span>
                                         </button>
                                     </td>
-                                    <td className="px-4 py-2 capitalize">{m.type}</td>
-                                    <td className="px-4 py-2 capitalize">{m.category}</td>
-                                    <td className="px-4 py-2">{m.uploadedBy || '—'}</td>
-                                    <td className="px-4 py-2">{m.createdAt ? new Date(m.createdAt).toLocaleString() : '—'}</td>
-                                    <td className="px-4 py-2 space-x-3">
-                                        <button onClick={() => setViewing(m)} className="text-blue-600 hover:underline">
-                                            View
-                                        </button>
-                                        <button onClick={() => handleDelete(m)} className="text-red-600 hover:underline">
-                                            Delete
-                                        </button>
+                                    <td className="px-4 py-2 capitalize md:table-cell">{m.type}</td>
+                                    <td className="px-4 py-2 capitalize hidden md:table-cell">{m.category}</td>
+                                    <td className="px-4 py-2 hidden md:table-cell">
+                                        {m.createdAt ? new Date(m.createdAt).toLocaleString() : '—'}
+                                    </td>
+                                    <td className="px-4 py-2 text-right md:text-left space-x-3">
+                                        <button onClick={() => setViewing(m)} className="text-blue-600 hover:underline">View</button>
+                                        <button onClick={() => handleDelete(m)} className="text-red-600 hover:underline">Delete</button>
                                     </td>
                                 </tr>
                             ))}
                             {filtered.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
+                                    <td colSpan={5} className="px-4 py-10 text-center text-gray-500">
                                         No media found.
                                     </td>
                                 </tr>
@@ -233,37 +257,40 @@ export default function MediaUploadPage() {
 
                 {viewing && (
                     <div
-                        className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+                        className="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center p-0 md:p-4"
                         onClick={() => setViewing(null)}
                     >
                         <div
-                            className="relative bg-white w-full max-w-5xl rounded-xl shadow-2xl overflow-y-auto max-h-[90vh]"
+                            className="relative bg-white w-full md:max-w-5xl md:rounded-xl shadow-2xl h-[90vh] md:h-auto md:max-h-[90vh] overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="px-5 py-4 border-b">
+                            <div className="px-5 py-4 border-b sticky top-0 bg-white z-10">
                                 <h3 className="text-lg font-semibold text-gray-800">Preview</h3>
                             </div>
 
                             <div className="p-4">
-                                <div className="w-full max-h-[70vh] grid place-items-center overflow-hidden">
-                                    {viewing.type === 'image' ? (
-                                        <img src={viewing.url} alt="" className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+                                <div className="w-full grid place-items-center">
+                                    {viewing?.type === 'image' ? (
+                                        <img
+                                            src={viewing.url}
+                                            alt=""
+                                            className="w-full h-auto max-h-[60vh] object-contain rounded-lg"
+                                        />
                                     ) : (
-                                        <video src={viewing.url} controls className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+                                        <video
+                                            src={viewing.url}
+                                            controls
+                                            className="w-full h-auto max-h-[60vh] object-contain rounded-lg"
+                                        />
                                     )}
                                 </div>
 
-                                <div className="mt-4 text-sm text-gray-700 space-y-1">
-                                    <div>
-                                        <b>Category:</b> {viewing.category}
-                                    </div>
-                                    <div>
-                                        <b>Uploaded:</b> {viewing.createdAt ? new Date(viewing.createdAt).toLocaleString() : '—'}
-                                    </div>
-                                    <div>
-                                        <b>By:</b> {viewing.uploadedBy || '—'}
-                                    </div>
-                                    <a href={viewing.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                                <div className="mt-4 text-sm text-gray-700 space-y-1 md:grid md:grid-cols-2 md:gap-4">
+                                    <div><b>Type:</b> {viewing?.type}</div>
+                                    <div><b>Category:</b> {viewing?.category}</div>
+                                    <div><b>Uploaded:</b> {viewing?.createdAt ? new Date(viewing.createdAt).toLocaleString() : '—'}</div>
+                                    <div><b>By:</b> {viewing?.uploadedBy || '—'}</div>
+                                    <a href={viewing?.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
                                         Open in new tab
                                     </a>
                                 </div>
@@ -284,4 +311,3 @@ export default function MediaUploadPage() {
         </>
     );
 }
-

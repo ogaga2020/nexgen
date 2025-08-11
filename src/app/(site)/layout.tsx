@@ -3,6 +3,8 @@ import { Inter, Open_Sans } from "next/font/google";
 import '@/styles/globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import NotifierProvider from '@/components/Notifier';
+
 
 const inter = Inter({
   variable: "--font-ui",
@@ -30,7 +32,7 @@ export default function PublicLayout({
     <html lang="en" className={`${inter.variable} ${openSans.variable}`}>
       <body className="font-ui bg-background text-foreground">
         <Navbar />
-        {children}
+        <NotifierProvider>{children}</NotifierProvider>
         <Footer />
       </body>
     </html>

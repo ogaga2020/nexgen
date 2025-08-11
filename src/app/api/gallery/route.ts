@@ -17,31 +17,31 @@ export async function GET() {
             category: (typeof categories)[number];
             publicId: string;
             createdAt: string;
-            uploadedBy: string | null;
+            uploadedBy: string;
         }> = [];
 
         for (const category of categories) {
-            const result = await cloudinary.search
+            const result: any = await cloudinary.search
                 .expression(`folder:nextgen/${category}`)
                 .sort_by('created_at', 'desc')
+                .with_field('context')
                 .max_results(50)
                 .execute();
 
             const resources = (result.resources as any[]).map((r) => ({
                 url: r.secure_url as string,
-                type: r.resource_type === 'video' ? 'video' as const : 'image' as const,
+                type: (r.resource_type === 'video' ? 'video' : 'image') as 'image' | 'video',
                 category,
-                publicId: r.public_id,
-                createdAt: r.created_at,
-                uploadedBy: r.context?.uploaded_by || '',
+                publicId: r.public_id as string,
+                createdAt: r.created_at as string,
+                uploadedBy: r?.context?.custom?.uploaded_by || '',
             }));
 
             allMedia.push(...resources);
         }
 
         return NextResponse.json(allMedia);
-    } catch (err) {
-        console.error('[GALLERY_FETCH_ERROR]', err);
+    } catch {
         return NextResponse.json([], { status: 500 });
     }
 }
