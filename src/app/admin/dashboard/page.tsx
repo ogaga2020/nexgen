@@ -33,32 +33,34 @@ export default function AdminDashboard() {
     const [txSummary, setTxSummary] = useState<{ totalAmount?: number; success?: number; failed?: number } | null>(null);
 
     useEffect(() => {
-        axios.get('/api/admin/users', { headers: { 'cache-control': 'no-cache' } })
-            .then(r => setUsers(r.data.users || []))
-            .catch(e => error(e?.response?.data?.error || e?.message || 'Failed to load students'));
-        axios.get('/api/gallery', { params: { t: Date.now() } })
-            .then(r => setMedia(r.data || []))
-            .catch(e => error(e?.response?.data?.error || e?.message || 'Failed to load media'));
-        axios.get('/api/admin/transactions/summary')
-            .then(r => setTxSummary(r.data || {}))
+        axios
+            .get('/api/admin/users', { headers: { 'cache-control': 'no-cache' } })
+            .then((r) => setUsers(r.data.users || []))
+            .catch((e) => error(e?.response?.data?.error || e?.message || 'Failed to load students'));
+        axios
+            .get('/api/gallery', { params: { t: Date.now() } })
+            .then((r) => setMedia(r.data || []))
+            .catch((e) => error(e?.response?.data?.error || e?.message || 'Failed to load media'));
+        axios
+            .get('/api/admin/transactions/summary')
+            .then((r) => setTxSummary(r.data || {}))
             .catch(() => setTxSummary(null));
     }, [error]);
 
     const studentStats = useMemo(() => {
-        const total = users.length;
-        const fully = users.filter(u => u.paymentStatus === 'fully_paid').length;
-        const partial = users.filter(u => u.paymentStatus === 'partially_paid').length;
-        const notpaid = users.filter(u => u.paymentStatus === 'not_paid').length;
-        return { total, fully, partial, notpaid };
+        const fully = users.filter((u) => u.paymentStatus === 'fully_paid').length;
+        const partial = users.filter((u) => u.paymentStatus === 'partially_paid').length;
+        const total = fully + partial;
+        return { total, fully, partial };
     }, [users]);
 
     const mediaStats = useMemo(() => {
         const byType = {
-            images: media.filter(m => m.type === 'image').length,
-            videos: media.filter(m => m.type === 'video').length,
+            images: media.filter((m) => m.type === 'image').length,
+            videos: media.filter((m) => m.type === 'video').length,
         };
         const cat = { plumbing: { image: 0, video: 0 }, electric: { image: 0, video: 0 }, solar: { image: 0, video: 0 } };
-        media.forEach(m => {
+        media.forEach((m) => {
             const key = m.category as Category;
             if (m.type === 'image') cat[key].image += 1;
             else cat[key].video += 1;
@@ -76,14 +78,14 @@ export default function AdminDashboard() {
         </div>
     );
 
-    const StackedBar = ({ image, video }: { image: number; video: number }) => {
-        const total = image + video;
-        const imgW = total ? (image / total) * 100 : 0;
-        const vidW = total ? (video / total) * 100 : 0;
+    const StackedBar = ({ full, partial }: { full: number; partial: number }) => {
+        const total = full + partial;
+        const fullW = total ? (full / total) * 100 : 0;
+        const partialW = total ? (partial / total) * 100 : 0;
         return (
             <div className="w-full h-3 rounded bg-gray-100 overflow-hidden">
-                <div className="h-3 bg-blue-500 inline-block" style={{ width: `${imgW}%` }} />
-                <div className="h-3 bg-purple-500 inline-block" style={{ width: `${vidW}%` }} />
+                <div className="h-3 bg-emerald-500 inline-block" style={{ width: `${fullW}%` }} />
+                <div className="h-3 bg-amber-400 inline-block" style={{ width: `${partialW}%` }} />
             </div>
         );
     };
@@ -96,19 +98,25 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <StatCard label="Students" value={studentStats.total} sub={`${studentStats.fully} fully • ${studentStats.partial} partial • ${studentStats.notpaid} not paid`} />
+                <StatCard label="Students" value={studentStats.total} sub={`${studentStats.fully} fully • ${studentStats.partial} partial`} />
                 <StatCard label="Images" value={mediaStats.byType.images} sub="Gallery items" />
                 <StatCard label="Videos" value={mediaStats.byType.videos} sub="Gallery items" />
-                <StatCard label="Payments (₦)" value={txSummary?.totalAmount ? txSummary.totalAmount.toLocaleString() : '—'} sub={`${txSummary?.success ?? '—'} success • ${txSummary?.failed ?? '—'} failed`} />
+                <StatCard
+                    label="Payments (₦)"
+                    value={txSummary?.totalAmount ? txSummary.totalAmount.toLocaleString() : '—'}
+                    sub={`${txSummary?.success ?? '—'} success • ${txSummary?.failed ?? '—'} failed`}
+                />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div className="rounded-xl border bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold">Student Payments</h3>
-                        <button onClick={() => router.push('/admin/students')} className="text-sm text-blue-600 hover:underline">View students</button>
+                        <button onClick={() => router.push('/admin/students')} className="text-sm text-blue-600 hover:underline">
+                            View students
+                        </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-2 gap-4 text-center">
                         <div>
                             <div className="text-2xl font-semibold">{studentStats.fully}</div>
                             <div className="text-sm text-gray-500">Fully</div>
@@ -119,26 +127,21 @@ export default function AdminDashboard() {
                             <div className="text-sm text-gray-500">Partial</div>
                             <div className="mt-1 text-xs text-gray-500">{pct(studentStats.partial, studentStats.total)}%</div>
                         </div>
-                        <div>
-                            <div className="text-2xl font-semibold">{studentStats.notpaid}</div>
-                            <div className="text-sm text-gray-500">Not paid</div>
-                            <div className="mt-1 text-xs text-gray-500">{pct(studentStats.notpaid, studentStats.total)}%</div>
-                        </div>
                     </div>
                     <div className="mt-5 h-3 w-full rounded bg-gray-100 overflow-hidden">
-                        <div className="h-3 bg-emerald-500 inline-block" style={{ width: `${pct(studentStats.fully, studentStats.total)}%` }} />
-                        <div className="h-3 bg-amber-400 inline-block" style={{ width: `${pct(studentStats.partial, studentStats.total)}%` }} />
-                        <div className="h-3 bg-gray-400 inline-block" style={{ width: `${pct(studentStats.notpaid, studentStats.total)}%` }} />
+                        <StackedBar full={studentStats.fully} partial={studentStats.partial} />
                     </div>
                 </div>
 
                 <div className="rounded-xl border bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold">Media by Category</h3>
-                        <button onClick={() => router.push('/admin/media')} className="text-sm text-blue-600 hover:underline">Manage media</button>
+                        <button onClick={() => router.push('/admin/media')} className="text-sm text-blue-600 hover:underline">
+                            Manage media
+                        </button>
                     </div>
                     <div className="space-y-4">
-                        {(['plumbing', 'electric', 'solar'] as Category[]).map(cat => (
+                        {(['plumbing', 'electric', 'solar'] as Category[]).map((cat) => (
                             <div key={cat}>
                                 <div className="flex items-center justify-between mb-1 text-sm">
                                     <span className="capitalize">{cat}</span>
@@ -146,7 +149,16 @@ export default function AdminDashboard() {
                                         {mediaStats.cat[cat].image} img • {mediaStats.cat[cat].video} vid
                                     </span>
                                 </div>
-                                <StackedBar image={mediaStats.cat[cat].image} video={mediaStats.cat[cat].video} />
+                                <div className="w-full h-3 rounded bg-gray-100 overflow-hidden">
+                                    <div
+                                        className="h-3 bg-blue-500 inline-block"
+                                        style={{ width: `${(mediaStats.cat[cat].image / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%` }}
+                                    />
+                                    <div
+                                        className="h-3 bg-purple-500 inline-block"
+                                        style={{ width: `${(mediaStats.cat[cat].video / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%` }}
+                                    />
+                                </div>
                             </div>
                         ))}
                         <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -160,7 +172,9 @@ export default function AdminDashboard() {
             <div className="rounded-xl border bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">Transactions</h3>
-                    <button onClick={() => router.push('/admin/transaction')} className="text-sm text-blue-600 hover:underline">View transactions</button>
+                    <button onClick={() => router.push('/admin/transaction')} className="text-sm text-blue-600 hover:underline">
+                        View transactions
+                    </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <StatCard label="Total Received" value={txSummary?.totalAmount ? `₦${txSummary.totalAmount.toLocaleString()}` : '—'} />
