@@ -35,18 +35,34 @@ export default function StudentsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [filterMenuOpen, setFilterMenuOpen] = useState(false);
     const { error, success } = useNotifier();
-
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
     const filterWrapRef = useRef<HTMLDivElement | null>(null);
 
-    useEffect(() => {
-        axios
-            .get('/api/admin/users', { headers: { 'cache-control': 'no-cache' } })
-            .then((res) => setUsers(res.data.users || []))
-            .catch((e) => {
-                setUsers([]);
-                error(e?.response?.data?.error || e?.message || 'Failed to load students');
+    const fetchUsers = async (page = 1, f = filter, q = search) => {
+        setLoading(true);
+        try {
+            const params: Record<string, any> = { page };
+            if (f !== 'all') params.filter = f;
+            if (q.trim()) params.search = q.trim();
+            const r = await axios.get('/api/admin/users', {
+                params,
+                headers: { 'cache-control': 'no-cache' },
             });
-    }, [error]);
+            setUsers(r.data.users || []);
+            setTotal(r.data.total || 0);
+            setCurrentPage(page);
+        } catch (e: any) {
+            setUsers([]);
+            error(e?.response?.data?.error || e?.message || 'Failed to load students');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers(1);
+    }, []);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -57,28 +73,35 @@ export default function StudentsPage() {
         return () => document.removeEventListener('mousedown', handler);
     }, [filterMenuOpen]);
 
-    const filteredUsers = useMemo(() => {
-        let out = users;
-        if (filter !== 'all') out = out.filter((u) => u.paymentStatus === filter);
-        if (search.trim()) {
-            const s = search.trim().toLowerCase().replace(/\s+/g, '');
-            out = out.filter((u) => u.fullName.toLowerCase().replace(/\s+/g, '').includes(s));
-        }
-        return out;
-    }, [users, filter, search]);
+    const labelFor = (f: 'all' | 'fully_paid' | 'partially_paid') =>
+        f === 'all' ? 'All' : f === 'fully_paid' ? 'Fully paid' : 'Partially paid';
 
-    const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
-    const paginatedUsers = filteredUsers.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const setFilterAndClose = (val: 'all' | 'fully_paid' | 'partially_paid') => {
+        setFilter(val);
+        setCurrentPage(1);
+        setFilterMenuOpen(false);
+        fetchUsers(1, val, search);
+    };
+
+    const StatusBadge = ({ status }: { status: string }) => {
+        if (status === 'fully_paid')
+            return <span className="px-2 py-1 rounded text-xs font-semibold bg-green-500 text-white">Fully paid</span>;
+        if (status === 'partially_paid')
+            return <span className="px-2 py-1 rounded text-xs font-semibold bg-yellow-400 text-black">Partially paid</span>;
+        return null;
+    };
+
+    const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('Delete this student?')) return;
         try {
             await axios.delete(`/api/admin/users/${id}`);
-            setUsers((prev) => prev.filter((u) => u._id !== id));
+            const newTotal = Math.max(0, total - 1);
+            const lastPage = Math.max(1, Math.ceil(newTotal / ITEMS_PER_PAGE));
+            const target = currentPage > lastPage ? lastPage : currentPage;
             success('Student deleted');
+            fetchUsers(target, filter, search);
         } catch (e: any) {
             error(e?.response?.data?.error || e?.message || 'Failed to delete');
         }
@@ -86,18 +109,13 @@ export default function StudentsPage() {
 
     const handleExport = () => {
         try {
-            const sheetData = filteredUsers.map((u) => ({
+            const sheetData = users.map((u) => ({
                 Name: u.fullName,
                 Email: u.email,
                 Phone: u.phone,
                 Training: u.trainingType,
                 Duration: `${u.trainingDuration} months`,
-                Status:
-                    u.paymentStatus === 'fully_paid'
-                        ? 'Fully paid'
-                        : u.paymentStatus === 'partially_paid'
-                            ? 'Partially paid'
-                            : '',
+                Status: u.paymentStatus === 'fully_paid' ? 'Fully paid' : u.paymentStatus === 'partially_paid' ? 'Partially paid' : '',
             }));
             const ws = XLSX.utils.json_to_sheet(sheetData);
             const wb = XLSX.utils.book_new();
@@ -108,23 +126,6 @@ export default function StudentsPage() {
         } catch (e: any) {
             error(e?.message || 'Failed to export');
         }
-    };
-
-    const labelFor = (f: 'all' | 'fully_paid' | 'partially_paid') =>
-        f === 'all' ? 'All' : f === 'fully_paid' ? 'Fully paid' : 'Partially paid';
-
-    const setFilterAndClose = (val: 'all' | 'fully_paid' | 'partially_paid') => {
-        setFilter(val);
-        setCurrentPage(1);
-        setFilterMenuOpen(false);
-    };
-
-    const StatusBadge = ({ status }: { status: string }) => {
-        if (status === 'fully_paid')
-            return <span className="px-2 py-1 rounded text-xs font-semibold bg-green-500 text-white">Fully paid</span>;
-        if (status === 'partially_paid')
-            return <span className="px-2 py-1 rounded text-xs font-semibold bg-yellow-400 text-black">Partially paid</span>;
-        return <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-200 text-gray-700">—</span>;
     };
 
     return (
@@ -144,8 +145,9 @@ export default function StudentsPage() {
                             placeholder="Search by name..."
                             value={search}
                             onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
+                                const v = e.target.value;
+                                setSearch(v);
+                                fetchUsers(1, filter, v);
                             }}
                             className="input-field w-full md:w-96"
                         />
@@ -199,7 +201,7 @@ export default function StudentsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedUsers.map((user) => (
+                            {users.map((user) => (
                                 <tr key={user._id} className="border-t hover:bg-gray-50 transition">
                                     <td className="px-4 py-2 text-left">{user.fullName}</td>
                                     <td className="px-4 py-2">{user.email}</td>
@@ -222,17 +224,17 @@ export default function StudentsPage() {
                         </tbody>
                     </table>
 
-                    {filteredUsers.length === 0 && (
-                        <p className="text-center text-gray-500 py-10">No students found.</p>
+                    {users.length === 0 && (
+                        <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No students found.'}</p>
                     )}
                 </div>
 
-                {totalPages > 1 && (
+                {total > 1 && (
                     <div className="mt-6 flex justify-center gap-2">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        {Array.from({ length: Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)) }, (_, i) => i + 1).map((page) => (
                             <button
                                 key={page}
-                                onClick={() => setCurrentPage(page)}
+                                onClick={() => fetchUsers(page, filter, search)}
                                 className={`px-3 py-1 rounded ${page === currentPage ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
                             >
                                 {page}
@@ -241,22 +243,18 @@ export default function StudentsPage() {
                     </div>
                 )}
 
-                {selectedUser && (
-                    <UserDetailsModal user={selectedUser} onClose={() => setSelectedUser(null)} />
-                )}
+                {selectedUser && <UserDetailsModal user={selectedUser} onClose={() => setSelectedUser(null)} />}
             </div>
         </>
     );
 }
 
+
 function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }) {
     return (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
             <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg max-h-[90vh] overflow-y-auto p-6">
-                <h2 className="text-xl font-semibold text-[var(--primary)] mb-4">
-                    {user.fullName}&apos;s Details
-                </h2>
-
+                <h2 className="text-xl font-semibold text-[var(--primary)] mb-4">{user.fullName}&apos;s Details</h2>
                 <div className="space-y-3">
                     <p><strong>Email:</strong> {user.email}</p>
                     <p><strong>Phone:</strong> {user.phone}</p>
@@ -264,15 +262,8 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                     <p><strong>Duration:</strong> {user.trainingDuration} months</p>
                     <p>
                         <strong>Status:</strong>{' '}
-                        <span>
-                            {user.paymentStatus === 'fully_paid'
-                                ? 'Fully paid'
-                                : user.paymentStatus === 'partially_paid'
-                                    ? 'Partially paid'
-                                    : '—'}
-                        </span>
+                        <span>{user.paymentStatus === 'fully_paid' ? 'Fully paid' : user.paymentStatus === 'partially_paid' ? 'Partially paid' : '—'}</span>
                     </p>
-
                     {user.guarantor ? (
                         <div className="mt-4 border-t pt-4">
                             <h3 className="font-semibold mb-2">Guarantor Info</h3>
@@ -280,20 +271,15 @@ function UserDetailsModal({ user, onClose }: { user: User; onClose: () => void }
                                 <p><strong>Name:</strong> {user.guarantor.fullName}</p>
                                 <p><strong>Email:</strong> {user.guarantor.email}</p>
                                 <p><strong>Phone:</strong> {user.guarantor.phone}</p>
-                                {user.guarantor.photo && (
-                                    <img src={user.guarantor.photo} alt="Guarantor" className="w-24 h-24 rounded-md border mt-2" />
-                                )}
+                                {user.guarantor.photo && <img src={user.guarantor.photo} alt="Guarantor" className="w-24 h-24 rounded-md border mt-2" />}
                             </div>
                         </div>
                     ) : (
                         <p className="text-gray-500">No guarantor info provided.</p>
                     )}
                 </div>
-
                 <div className="text-right mt-6">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400">
-                        Close
-                    </button>
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400">Close</button>
                 </div>
             </div>
         </div>

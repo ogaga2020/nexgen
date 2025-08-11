@@ -9,10 +9,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         if (!deleted) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
-
         return NextResponse.json({ message: 'User deleted successfully' });
-    } catch (err) {
-        console.error('[ADMIN_USER_DELETE_ERROR]', err);
+    } catch {
         return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
     }
 }
