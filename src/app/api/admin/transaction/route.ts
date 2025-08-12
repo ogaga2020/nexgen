@@ -1,62 +1,84 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { connectDB } from '@/lib/db';
 import Transaction from '@/models/Transaction';
 import User from '@/models/User';
-import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+
+const QuerySchema = z.object({
+    page: z.coerce.number().min(1).default(1),
+    all: z.enum(['0', '1']).default('0'),
+    status: z.enum(['success', 'failed', 'pending']).optional(),
+    type: z.enum(['initial', 'balance']).optional(),
+    search: z.string().trim().optional(),
+    month: z.string().regex(/^(?:all|[1-9]|1[0-2])$/).optional(),
+    sortKey: z.enum(['date', 'amount']).default('date'),
+    sortDir: z.enum(['asc', 'desc']).default('desc')
+});
+
+type TxStatus = 'success' | 'failed' | 'pending';
+type TxType = 'initial' | 'balance';
+
+type TxDoc = {
+    _id: unknown;
+    amount: number;
+    type: TxType;
+    paymentMethod: 'Paystack';
+    reference: string;
+    status: TxStatus;
+    createdAt: Date;
+    userId?: { fullName?: string; email?: string; phone?: string } | null;
+};
+
+type AggByStatus = { _id: TxStatus; totalAmount: number; count: number };
 
 export async function GET(req: NextRequest) {
     try {
         await connectDB();
 
-        const { searchParams } = new URL(req.url);
-        const page = parseInt(searchParams.get('page') || '1');
+        const qp = Object.fromEntries(req.nextUrl.searchParams);
+        const parsed = QuerySchema.safeParse(qp);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid query' }, { status: 400 });
+        }
+
+        const { page, all, status, type, search, month, sortKey, sortDir } = parsed.data;
         const limit = 20;
-        const all = searchParams.get('all') === '1';
 
-        const status = searchParams.get('status');
-        const type = searchParams.get('type');
-        const search = searchParams.get('search') || '';
-        const monthParam = searchParams.get('month');
-        const sortKey = (searchParams.get('sortKey') as 'date' | 'amount') || 'date';
-        const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc';
+        const query: Record<string, unknown> = {};
+        if (status) query.status = status;
+        if (type) query.type = type;
 
-        const query: any = {};
-
-        if (status && ['success', 'failed', 'pending'].includes(status)) {
-            query.status = status;
+        if (month && month !== 'all') {
+            const m = Number(month);
+            query.$expr = { $eq: [{ $month: '$createdAt' }, m] };
         }
 
-        if (type && ['initial', 'balance'].includes(type)) {
-            query.type = type;
-        }
-
-        if (monthParam && monthParam !== 'all') {
-            const m = parseInt(monthParam);
-            if (m >= 1 && m <= 12) {
-                query.$expr = { $eq: [{ $month: '$createdAt' }, m] };
-            }
-        }
-
-        if (search) {
+        if (search && search.trim()) {
             const re = new RegExp(search.replace(/\s+/g, '.*'), 'i');
             const matchingUsers = await User.find({
-                $or: [{ fullName: { $regex: re } }, { email: { $regex: re } }],
-            }).select('_id');
+                $or: [{ fullName: { $regex: re } }, { email: { $regex: re } }]
+            })
+                .select('_id')
+                .lean()
+                .exec();
             const userIds = matchingUsers.map((u) => u._id);
             query.$or = [{ userId: { $in: userIds } }, { reference: { $regex: re } }];
         }
 
-        const total = await Transaction.countDocuments(query);
+        const sort: Record<string, 1 | -1> =
+            sortKey === 'amount' ? { amount: sortDir === 'asc' ? 1 : -1 } : { createdAt: sortDir === 'asc' ? 1 : -1 };
 
-        const sort: any =
-            sortKey === 'amount'
-                ? { amount: sortDir === 'asc' ? 1 : -1 }
-                : { createdAt: sortDir === 'asc' ? 1 : -1 };
+        const baseFind = Transaction.find(query)
+            .sort(sort)
+            .populate('userId', 'fullName email phone');
 
-        const baseFind = Transaction.find(query).sort(sort).populate('userId', 'fullName email phone');
+        const docs = (all === '1'
+            ? await baseFind.lean()
+            : await baseFind.skip((page - 1) * limit).limit(limit).lean()) as TxDoc[];
 
-        const docs = all ? await baseFind.lean() : await baseFind.skip((page - 1) * limit).limit(limit).lean();
-
-        const transactions = docs.map((t: any) => ({
+        const transactions = docs.map((t) => ({
             _id: String(t._id),
             amount: t.amount,
             type: t.type,
@@ -65,28 +87,28 @@ export async function GET(req: NextRequest) {
             status: t.status,
             createdAt: t.createdAt,
             user: {
-                fullName: t.userId?.fullName || '',
-                email: t.userId?.email || '',
-                phone: t.userId?.phone || '',
-            },
+                fullName: t.userId?.fullName ?? '',
+                email: t.userId?.email ?? '',
+                phone: t.userId?.phone ?? ''
+            }
         }));
 
-        const sumAgg = await Transaction.aggregate([
-            { $match: query },
-            {
-                $group: {
-                    _id: '$status',
-                    totalAmount: { $sum: '$amount' },
-                    count: { $sum: 1 },
-                },
-            },
+        const [total, sumAgg] = await Promise.all([
+            Transaction.countDocuments(query),
+            Transaction.aggregate<AggByStatus>([
+                { $match: query },
+                { $group: { _id: '$status', totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } }
+            ])
         ]);
 
-        const byStatus = Object.fromEntries(sumAgg.map((x: any) => [x._id, x]));
+        const byStatus: Partial<Record<TxStatus, AggByStatus>> = Object.fromEntries(
+            sumAgg.map((x) => [x._id, x])
+        );
+
         const summary = {
-            sumSuccess: byStatus.success?.totalAmount || 0,
-            pending: byStatus.pending?.count || 0,
-            failed: byStatus.failed?.count || 0,
+            sumSuccess: byStatus.success?.totalAmount ?? 0,
+            pending: byStatus.pending?.count ?? 0,
+            failed: byStatus.failed?.count ?? 0
         };
 
         return NextResponse.json({
@@ -94,9 +116,9 @@ export async function GET(req: NextRequest) {
             total,
             page,
             pageSize: limit,
-            summary,
+            summary
         });
-    } catch (err) {
+    } catch {
         return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 });
     }
 }
