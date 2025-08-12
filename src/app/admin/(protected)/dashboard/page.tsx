@@ -16,12 +16,35 @@ type User = {
 };
 
 type Category = 'plumbing' | 'electric' | 'solar';
+
 type MediaItem = {
     url: string;
     type: 'image' | 'video';
     category: Category;
     publicId?: string;
     createdAt?: string;
+};
+
+type TxUser = { fullName: string; email: string; phone: string };
+
+type Tx = {
+    _id: string;
+    user: TxUser;
+    amount: number;
+    type: 'initial' | 'balance';
+    reference: string;
+    status: 'success' | 'failed' | 'pending';
+    createdAt: string;
+};
+
+type TxSummaryFromApi = { sumSuccess: number; pending: number; failed: number };
+
+type TxApiResp = {
+    transactions: Tx[];
+    summary: TxSummaryFromApi;
+    total: number;
+    page: number;
+    pageSize: number;
 };
 
 export default function AdminDashboard() {
@@ -37,13 +60,26 @@ export default function AdminDashboard() {
             .get('/api/admin/users', { headers: { 'cache-control': 'no-cache' } })
             .then((r) => setUsers(r.data.users || []))
             .catch((e) => error(e?.response?.data?.error || e?.message || 'Failed to load students'));
+
         axios
             .get('/api/gallery', { params: { t: Date.now() } })
             .then((r) => setMedia(r.data || []))
             .catch((e) => error(e?.response?.data?.error || e?.message || 'Failed to load media'));
+
         axios
-            .get('/api/admin/transactions/summary')
-            .then((r) => setTxSummary(r.data || {}))
+            .get<TxApiResp>('/api/admin/transaction', {
+                params: { all: '1', sortKey: 'date', sortDir: 'desc' },
+                headers: { 'cache-control': 'no-cache' }
+            })
+            .then((r) => {
+                const data = r.data;
+                const successCount = (data.transactions || []).filter((t) => t.status === 'success').length;
+                setTxSummary({
+                    totalAmount: data.summary?.sumSuccess ?? 0,
+                    success: successCount,
+                    failed: data.summary?.failed ?? 0
+                });
+            })
             .catch(() => setTxSummary(null));
     }, [error]);
 
@@ -57,7 +93,7 @@ export default function AdminDashboard() {
     const mediaStats = useMemo(() => {
         const byType = {
             images: media.filter((m) => m.type === 'image').length,
-            videos: media.filter((m) => m.type === 'video').length,
+            videos: media.filter((m) => m.type === 'video').length
         };
         const cat = { plumbing: { image: 0, video: 0 }, electric: { image: 0, video: 0 }, solar: { image: 0, video: 0 } };
         media.forEach((m) => {
@@ -152,11 +188,15 @@ export default function AdminDashboard() {
                                 <div className="w-full h-3 rounded bg-gray-100 overflow-hidden">
                                     <div
                                         className="h-3 bg-blue-500 inline-block"
-                                        style={{ width: `${(mediaStats.cat[cat].image / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%` }}
+                                        style={{
+                                            width: `${(mediaStats.cat[cat].image / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%`
+                                        }}
                                     />
                                     <div
                                         className="h-3 bg-purple-500 inline-block"
-                                        style={{ width: `${(mediaStats.cat[cat].video / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%` }}
+                                        style={{
+                                            width: `${(mediaStats.cat[cat].video / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%`
+                                        }}
                                     />
                                 </div>
                             </div>
@@ -181,7 +221,7 @@ export default function AdminDashboard() {
                     <StatCard label="Successful" value={txSummary?.success ?? '—'} />
                     <StatCard label="Failed" value={txSummary?.failed ?? '—'} />
                 </div>
-                {!txSummary && <div className="mt-3 text-xs text-gray-500">No transaction summary API detected.</div>}
+                {!txSummary && <div className="mt-3 text-xs text-gray-500">No transaction data loaded.</div>}
             </div>
         </div>
     );
