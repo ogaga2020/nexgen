@@ -46,7 +46,7 @@ export default function AdminNavbar() {
     );
 
     return (
-        <nav className="bg-[var(--primary)] text-white">
+        <nav className="bg-[var(--primary)] text-white sticky top-0 z-50">
             <div className="px-4 md:px-6 py-3 flex items-center justify-between">
                 <h1 className="font-bold text-lg">NexGen Admin</h1>
 

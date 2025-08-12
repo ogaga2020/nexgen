@@ -1,41 +1,68 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
+type CreateAdminForm = {
+    fullName: string;
+    email: string;
+    phone: string;
+    password: string;
+};
+
+type ApiResponse = { ok?: boolean; message?: string };
+
+const NG_PHONE_REGEX =
+    /^(?:\+?234|0)(?:70|80|81|90|91|701|702|703|704|705|706|707|708|709|802|803|804|805|806|807|808|809|810|811|813|814|815|816|817|818|819|901|902|903|904|905|906|907|908|909)\d{7}$/;
+
 export default function CreateAdminPage() {
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<CreateAdminForm>({
         fullName: '',
         email: '',
         phone: '',
-        password: '',
+        password: ''
     });
     const [loading, setLoading] = useState(false);
     const [showPw, setShowPw] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+    const isValid = useMemo(() => {
+        if (!form.fullName.trim()) return false;
+        if (!/\S+@\S+\.\S+/.test(form.email)) return false;
+        if (!NG_PHONE_REGEX.test(form.phone.replace(/\s+/g, ''))) return false;
+        if (form.password.length < 6) return false;
+        return true;
+    }, [form]);
+
+    const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setForm((p) => ({ ...p, [name]: value }));
     };
 
-    const handleSubmit = async (e?: React.FormEvent) => {
-        e?.preventDefault();
+    const normalizePhone = (s: string) => s.replace(/\s+/g, '');
 
-        if (!form.fullName.trim()) return toast.error('Full name is required.');
-        if (!form.email.trim()) return toast.error('Email is required.');
-        if (!/\S+@\S+\.\S+/.test(form.email)) return toast.error('Enter a valid email.');
-        if (!form.phone.trim()) return toast.error('Phone is required.');
-        if (!form.password || form.password.length < 6)
-            return toast.error('Password must be at least 6 characters.');
-
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!isValid) {
+            if (!form.fullName.trim()) return toast.error('Full name is required.');
+            if (!/\S+@\S+\.\S+/.test(form.email)) return toast.error('Enter a valid email.');
+            if (!NG_PHONE_REGEX.test(normalizePhone(form.phone))) return toast.error('Enter a valid Nigerian phone number.');
+            if (form.password.length < 6) return toast.error('Password must be at least 6 characters.');
+        }
         setLoading(true);
         try {
-            await axios.post('/api/admin/create', form);
-            toast.success('Admin account created. Invitation email sent.');
-            setForm({ fullName: '', email: '', phone: '', password: '' });
-            setShowPw(false);
-        } catch (err: any) {
-            toast.error(err.response?.data?.error || 'Creation failed');
+            const payload = { ...form, phone: normalizePhone(form.phone) };
+            const { data } = await axios.post<ApiResponse>('/api/admin/create', payload);
+            if (data?.ok === false) {
+                toast.error(data.message || 'Creation failed');
+            } else {
+                toast.success('Admin account created. Invitation email sent.');
+                setForm({ fullName: '', email: '', phone: '', password: '' });
+                setShowPw(false);
+            }
+        } catch (err) {
+            const msg = (err as any)?.response?.data?.error || (err as Error)?.message || 'Creation failed';
+            toast.error(String(msg));
         } finally {
             setLoading(false);
         }
@@ -43,99 +70,96 @@ export default function CreateAdminPage() {
 
     return (
         <>
-            <section className="bg-gradient-to-r from-green-800 to-green-500 text-white py-10 px-4">
-                <div className="max-w-4xl mx-auto">
-                    <h1 className="text-3xl md:text-4xl font-bold">Create Admin</h1>
-                    <p className="opacity-90 mt-1">
-                        Add a new administrator for NexGen Flow &amp; Power.
-                    </p>
+            <div className="max-w-7xl mx-auto py-10 px-4">
+                <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
+                    <h1 className="text-3xl font-bold">Create Admin</h1>
+                    <p className="text-lg mt-1">Add a new administrator for NexGen Flow &amp; Power.</p>
                 </div>
-            </section>
 
-            <div className="max-w-4xl mx-auto px-4 -mt-8">
                 <form
                     onSubmit={handleSubmit}
-                    className="bg-white border rounded-xl shadow-sm p-6 md:p-8"
+                    className="bg-white p-4 border rounded-lg shadow-sm"
                 >
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="text-sm text-gray-600 mb-4">
+                        Fill in the details below. The new admin will receive a welcome email.
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Full Name
-                            </label>
+                            <label className="block mb-1 font-medium text-gray-700">Full Name</label>
                             <input
                                 type="text"
                                 name="fullName"
                                 value={form.fullName}
-                                onChange={handleChange}
+                                onChange={onChange}
                                 placeholder="Jane Doe"
                                 autoComplete="name"
-                                className="input-field bg-white w-full"
+                                className="input-field w-full bg-white"
+                                aria-invalid={!form.fullName.trim()}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Email
-                            </label>
+                            <label className="block mb-1 font-medium text-gray-700">Email</label>
                             <input
                                 type="email"
                                 name="email"
                                 value={form.email}
-                                onChange={handleChange}
+                                onChange={onChange}
                                 placeholder="jane@example.com"
                                 autoComplete="email"
-                                className="input-field bg-white w-full"
+                                className="input-field w-full bg-white"
+                                aria-invalid={!/\S+@\S+\.\S+/.test(form.email)}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Phone
-                            </label>
+                            <label className="block mb-1 font-medium text-gray-700">Phone</label>
                             <input
                                 type="tel"
                                 name="phone"
                                 value={form.phone}
-                                onChange={handleChange}
+                                onChange={onChange}
                                 placeholder="+234 801 234 5678"
                                 autoComplete="tel"
-                                className="input-field bg-white w-full"
+                                className="input-field w-full bg-white"
+                                aria-invalid={!NG_PHONE_REGEX.test(form.phone.replace(/\s+/g, ''))}
                             />
+                            <p className="text-xs text-gray-500 mt-1">Example: +2348012345678 or 08012345678</p>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Password
-                            </label>
+                            <label className="block mb-1 font-medium text-gray-700">Password</label>
                             <div className="relative">
                                 <input
                                     type={showPw ? 'text' : 'password'}
                                     name="password"
                                     value={form.password}
-                                    onChange={handleChange}
+                                    onChange={onChange}
                                     placeholder="At least 6 characters"
                                     autoComplete="new-password"
-                                    className="input-field bg-white w-full pr-10"
+                                    className="input-field w-full bg-white pr-16"
+                                    aria-invalid={form.password.length < 6}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPw((v) => !v)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-800"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-800 px-2 py-1 rounded"
+                                    aria-pressed={showPw}
+                                    aria-label={showPw ? 'Hide password' : 'Show password'}
                                 >
                                     {showPw ? 'Hide' : 'Show'}
                                 </button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                The new admin can change their password after logging in.
-                            </p>
+                            <p className="text-xs text-gray-500 mt-1">The new admin can change their password after logging in.</p>
                         </div>
                     </div>
 
                     <div className="mt-6 flex justify-end">
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-6 py-2 rounded-md disabled:opacity-60"
+                            disabled={loading || !isValid}
+                            className="bg-[var(--primary)] text-white px-6 py-2 rounded-md hover:bg-[var(--primary-hover)] disabled:opacity-60"
                         >
                             {loading ? 'Creating…' : 'Create Admin'}
                         </button>
