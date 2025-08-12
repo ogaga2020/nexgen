@@ -63,8 +63,8 @@ export default function TransactionsPage() {
         try {
             const params = new URLSearchParams();
             params.set('page', String(page));
-            params.set('status', status);
-            params.set('type', tType);
+            if (status !== 'all') params.set('status', status);
+            if (tType !== 'all') params.set('type', tType);
             params.set('sortKey', sortKey);
             params.set('sortDir', sortDir);
             if (search.trim()) params.set('search', search.trim());
@@ -102,8 +102,8 @@ export default function TransactionsPage() {
     const exportToExcel = async () => {
         const params = new URLSearchParams();
         params.set('all', '1');
-        params.set('status', status);
-        params.set('type', tType);
+        if (status !== 'all') params.set('status', status);
+        if (tType !== 'all') params.set('type', tType);
         params.set('sortKey', sortKey);
         params.set('sortDir', sortDir);
         if (search.trim()) params.set('search', search.trim());
