@@ -58,6 +58,9 @@ export default function RegisterPage() {
     const [uploadingUserPhoto, setUploadingUserPhoto] = useState(false);
     const [uploadingGuarantorPhoto, setUploadingGuarantorPhoto] = useState(false);
 
+    const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET;
+
     const handleUpload = async (
         e: React.ChangeEvent<HTMLInputElement>,
         field: 'photo' | 'guarantor.photo'
@@ -69,23 +72,33 @@ export default function RegisterPage() {
             e.currentTarget.value = '';
             return;
         }
+
+        if (!CLOUD || !PRESET) {
+            alert('Cloudinary config missing. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET.');
+            e.currentTarget.value = '';
+            return;
+        }
+
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'nexgen_default');
+        formData.append('upload_preset', PRESET);
         formData.append('folder', 'nextgen/passport');
+
         const setBusy = field === 'photo' ? setUploadingUserPhoto : setUploadingGuarantorPhoto;
         setBusy(true);
         try {
-            const res = await fetch('https://api.cloudinary.com/v1_1/dg0jsjmh9/image/upload', {
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, {
                 method: 'POST',
                 body: formData,
             });
+            const payload = await res.json().catch(() => null);
             if (!res.ok) {
-                alert('Upload failed. Check Cloudinary preset.');
+                const msg = payload?.error?.message || res.statusText || 'Upload failed';
+                alert(`Upload failed: ${msg}`);
+                e.currentTarget.value = '';
                 return;
             }
-            const data = await res.json();
-            setValue(field, data.secure_url, { shouldValidate: true, shouldDirty: true });
+            setValue(field, payload.secure_url, { shouldValidate: true, shouldDirty: true });
         } finally {
             setBusy(false);
         }
