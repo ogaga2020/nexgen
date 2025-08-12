@@ -24,6 +24,13 @@ type Transaction = {
 
 type Summary = { sumSuccess: number; pending: number; failed: number };
 
+type TxApiResp = {
+    transactions: Transaction[];
+    summary: Summary;
+    total: number;
+    pageSize: number;
+};
+
 export default function TransactionsPage() {
     const { error } = useNotifier();
 
@@ -39,47 +46,57 @@ export default function TransactionsPage() {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState<'date' | 'amount'>('date');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+    const [loading, setLoading] = useState(false);
 
     const months = useMemo((): { label: string; value: string }[] => {
         const list = Array.from({ length: 12 }, (_, i) =>
             new Date(0, i).toLocaleString('default', { month: 'long' })
         );
         return [
-            {
-                label: 'All Months', value: 'all'
-            }, ...list.map((label, i) => ({
-                label, value: String(i + 1)
-            }))
+            { label: 'All Months', value: 'all' },
+            ...list.map((label, i) => ({ label, value: String(i + 1) }))
         ];
     }, []);
 
-    const fetchTx = () => {
-        const params = new URLSearchParams();
-        params.set('page', String(page));
-        params.set('status', status);
-        params.set('type', tType);
-        params.set('sortKey', sortKey);
-        params.set('sortDir', sortDir);
-        if (search.trim()) params.set('search', search.trim());
-        if (month !== 'all') params.set('month', month);
-        axios
-            .get(`/api/admin/transaction?${params.toString()}`, { headers: { 'cache-control': 'no-cache' } })
-            .then((res) => {
-                setTransactions(res.data.transactions || []);
-                setSummary(res.data.summary || { sumSuccess: 0, pending: 0, failed: 0 });
-                setTotal(res.data.total || 0);
-                setPageSize(res.data.pageSize || 20);
-            })
-            .catch((e) => {
-                setTransactions([]);
-                setSummary({ sumSuccess: 0, pending: 0, failed: 0 });
-                setTotal(0);
-                error(e?.response?.data?.error || e?.message || 'Failed to fetch transactions');
+    const fetchTx = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            params.set('status', status);
+            params.set('type', tType);
+            params.set('sortKey', sortKey);
+            params.set('sortDir', sortDir);
+            if (search.trim()) params.set('search', search.trim());
+            if (month !== 'all') params.set('month', month);
+
+            const { data } = await axios.get<TxApiResp>(`/api/admin/transaction?${params.toString()}`, {
+                headers: { 'cache-control': 'no-cache' }
             });
+
+            setTransactions(data.transactions || []);
+            setSummary(data.summary || { sumSuccess: 0, pending: 0, failed: 0 });
+            setTotal(data.total || 0);
+            setPageSize(data.pageSize || 20);
+        } catch (e: unknown) {
+            let msg = 'Failed to fetch transactions';
+            if (axios.isAxiosError(e)) {
+                msg = (e.response?.data as { error?: string } | undefined)?.error || e.message || msg;
+            } else if (e instanceof Error) {
+                msg = e.message || msg;
+            }
+            setTransactions([]);
+            setSummary({ sumSuccess: 0, pending: 0, failed: 0 });
+            setTotal(0);
+            error(msg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         fetchTx();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, month, status, tType, search, sortKey, sortDir]);
 
     const exportToExcel = async () => {
@@ -91,8 +108,10 @@ export default function TransactionsPage() {
         params.set('sortDir', sortDir);
         if (search.trim()) params.set('search', search.trim());
         if (month !== 'all') params.set('month', month);
-        const res = await axios.get(`/api/admin/transaction?${params.toString()}`);
-        const list: Transaction[] = res.data.transactions || [];
+
+        const { data } = await axios.get<TxApiResp>(`/api/admin/transaction?${params.toString()}`);
+        const list: Transaction[] = data.transactions || [];
+
         const sheetData = list.map((t) => ({
             Name: t.user.fullName,
             Email: t.user.email,
@@ -101,8 +120,9 @@ export default function TransactionsPage() {
             Type: t.type,
             Reference: t.reference,
             Status: t.status,
-            Date: new Date(t.createdAt).toLocaleString(),
+            Date: new Date(t.createdAt).toLocaleString()
         }));
+
         const ws = XLSX.utils.json_to_sheet(sheetData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
@@ -113,10 +133,10 @@ export default function TransactionsPage() {
 
     const badge = (st: Transaction['status']) =>
         st === 'success'
-            ? 'bg-[var(--success)] text-white'
+            ? 'bg-green-100 text-green-700'
             : st === 'pending'
-                ? 'bg-[var(--warning)] text-black'
-                : 'bg-[var(--danger)] text-white';
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-red-100 text-red-700';
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -164,7 +184,7 @@ export default function TransactionsPage() {
                         <select
                             value={month}
                             onChange={(e) => {
-                                setMonth(e.target.value as any);
+                                setMonth(e.target.value);
                                 setPage(1);
                             }}
                             className="input-field bg-white w-full"
@@ -182,7 +202,7 @@ export default function TransactionsPage() {
                         <select
                             value={status}
                             onChange={(e) => {
-                                setStatus(e.target.value as any);
+                                setStatus(e.target.value as 'all' | 'success' | 'pending' | 'failed');
                                 setPage(1);
                             }}
                             className="input-field bg-white w-full"
@@ -199,7 +219,7 @@ export default function TransactionsPage() {
                         <select
                             value={tType}
                             onChange={(e) => {
-                                setTType(e.target.value as any);
+                                setTType(e.target.value as 'all' | 'initial' | 'balance');
                                 setPage(1);
                             }}
                             className="input-field bg-white w-full"
@@ -216,7 +236,7 @@ export default function TransactionsPage() {
                             <select
                                 value={sortKey}
                                 onChange={(e) => {
-                                    setSortKey(e.target.value as any);
+                                    setSortKey(e.target.value as 'date' | 'amount');
                                     setPage(1);
                                 }}
                                 className="input-field bg-white"
@@ -227,7 +247,7 @@ export default function TransactionsPage() {
                             <select
                                 value={sortDir}
                                 onChange={(e) => {
-                                    setSortDir(e.target.value as any);
+                                    setSortDir(e.target.value as 'asc' | 'desc');
                                     setPage(1);
                                 }}
                                 className="input-field bg-white"
@@ -278,7 +298,7 @@ export default function TransactionsPage() {
                             {transactions.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
-                                        No transactions found.
+                                        {loading ? 'Loading…' : 'No transactions found.'}
                                     </td>
                                 </tr>
                             )}
@@ -293,6 +313,7 @@ export default function TransactionsPage() {
                                 key={p}
                                 onClick={() => setPage(p)}
                                 className={`px-3 py-1 rounded ${p === page ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+                                disabled={loading}
                             >
                                 {p}
                             </button>

@@ -53,6 +53,7 @@ export default function CreateAdminPage() {
         try {
             const payload = { ...form, phone: normalizePhone(form.phone) };
             const { data } = await axios.post<ApiResponse>('/api/admin/create', payload);
+
             if (data?.ok === false) {
                 toast.error(data.message || 'Creation failed');
             } else {
@@ -60,9 +61,17 @@ export default function CreateAdminPage() {
                 setForm({ fullName: '', email: '', phone: '', password: '' });
                 setShowPw(false);
             }
-        } catch (err) {
-            const msg = (err as any)?.response?.data?.error || (err as Error)?.message || 'Creation failed';
-            toast.error(String(msg));
+        } catch (err: unknown) {
+            let msg = 'Creation failed';
+            if (axios.isAxiosError(err)) {
+                const serverMsg =
+                    (err.response?.data as { error?: string; message?: string } | undefined)?.error ??
+                    err.response?.data?.message;
+                msg = serverMsg || err.message || msg;
+            } else if (err instanceof Error) {
+                msg = err.message || msg;
+            }
+            toast.error(msg);
         } finally {
             setLoading(false);
         }

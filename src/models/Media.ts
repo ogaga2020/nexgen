@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document, Types, Model } from 'mongoose';
 
 export interface IMedia extends Document {
   publicId: string;
@@ -23,4 +23,8 @@ const MediaSchema = new Schema<IMedia>(
   { timestamps: true }
 );
 
-export default mongoose.models.Media || mongoose.model<IMedia>('Media', MediaSchema);
+const Media: Model<IMedia> =
+  (mongoose.models.Media as Model<IMedia>) ||
+  mongoose.model<IMedia>('Media', MediaSchema);
+
+export default Media;
