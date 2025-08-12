@@ -8,6 +8,7 @@ import '@/styles/globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import NotifierProvider from '@/components/Notifier';
+import WhatsApp from '@/components/Whatsapp';
 
 const inter = Inter({
   variable: "--font-ui",
@@ -33,7 +34,10 @@ export default function PublicLayout({ children, }: {
     <html lang="en" className={`${inter.variable} ${openSans.variable}`}>
       <body className="font-ui bg-background text-foreground">
         <Navbar />
-        <NotifierProvider>{children}</NotifierProvider>
+        <NotifierProvider>
+          {children}
+          <WhatsApp />
+        </NotifierProvider>
         <Footer />
       </body>
     </html>

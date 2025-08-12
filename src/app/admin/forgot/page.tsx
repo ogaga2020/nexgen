@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 export default function ForgotPasswordPage() {
@@ -13,6 +12,8 @@ export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false);
     const [cooldown, setCooldown] = useState(0);
     const router = useRouter();
+
+    const LOGO_URL = 'https://branition.com/assets/img/users/logos/4741-iHZXCVg.webp';
 
     useEffect(() => {
         if (!cooldown) return;
@@ -62,9 +63,14 @@ export default function ForgotPasswordPage() {
 
     return (
         <>
-            <section className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white py-16 px-6 text-center">
+            <section className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white py-12 px-6 text-center">
                 <button onClick={() => router.push('/admin')} className="inline-flex items-center justify-center">
-                    <Image src="/logo.png" alt="NexGen Logo" width={120} height={40} priority />
+                    <img
+                        src={LOGO_URL}
+                        alt="NexGen Logo"
+                        className="w-[75px] h-auto rounded-full shadow-lg"
+                        loading="lazy"
+                    />
                 </button>
                 <h1 className="text-3xl md:text-4xl font-bold mt-4">Forgot Password</h1>
                 <p className="opacity-90">
