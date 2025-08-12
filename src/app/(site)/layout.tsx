@@ -1,10 +1,13 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 import type { Metadata } from "next";
 import { Inter, Open_Sans } from "next/font/google";
 import '@/styles/globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import NotifierProvider from '@/components/Notifier';
-
 
 const inter = Inter({
   variable: "--font-ui",
