@@ -23,9 +23,7 @@ export const metadata: Metadata = {
   description: "Training and services in Electrical, Plumbing, and Solar",
 };
 
-export default function PublicLayout({
-  children,
-}: {
+export default function PublicLayout({ children, }: {
   children: React.ReactNode;
 }) {
   return (

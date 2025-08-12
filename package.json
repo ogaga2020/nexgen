@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -41,7 +45,6 @@
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/winston": "^2.4.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.4.3",
