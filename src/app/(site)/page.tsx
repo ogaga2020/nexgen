@@ -1,154 +1,281 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import Accordion from './Accordion';
+import { useForm } from 'react-hook-form';
+import type { SubmitHandler, Resolver } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function HomePage() {
-  const router = useRouter();
+const FormSchema = z.object({
+  fullName: z.string().min(3, 'Enter your full name'),
+  email: z.string().email('Enter a valid email'),
+  phone: z.string().regex(/^(\+234|0)[789][01]\d{8}$/, 'Invalid Nigerian phone'),
+  trainingType: z.enum(['Electrical', 'Plumbing', 'Solar']),
+  trainingDuration: z.coerce.number().refine((v) => [4, 8, 12].includes(v), { message: 'Select a duration' }),
+  photo: z.string().url('Upload a valid image URL'),
+  guarantor: z.object({
+    fullName: z.string().min(3, 'Enter guarantor name'),
+    email: z.string().email('Enter a valid email'),
+    phone: z.string().regex(/^(\+234|0)[789][01]\d{8}$/, 'Invalid phone'),
+    photo: z.string().url('Upload a valid image URL'),
+  }),
+});
+
+type RegisterForm = z.infer<typeof FormSchema>;
+
+const TUITION_BY_DURATION: Record<4 | 8 | 12, number> = {
+  4: 250_000,
+  8: 450_000,
+  12: 700_000,
+};
+
+const BUSINESS_E164 = '2348039375634';
+
+export default function RegisterPage() {
+  const searchParams = useSearchParams();
+
+  const durationParam = searchParams.get('duration');
+  const typeParam = searchParams.get('type');
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterForm>({
+    resolver: zodResolver(FormSchema) as Resolver<RegisterForm>,
+    defaultValues: {
+      trainingDuration: durationParam ? (Number(durationParam) as 4 | 8 | 12) : undefined,
+      trainingType:
+        typeParam === 'Electrical' || typeParam === 'Plumbing' || typeParam === 'Solar'
+          ? (typeParam as RegisterForm['trainingType'])
+          : undefined,
+    },
+  });
+
+  useEffect(() => {
+    const d = searchParams.get('duration');
+    const t = searchParams.get('type');
+    if (d) setValue('trainingDuration', Number(d) as 4 | 8 | 12, { shouldValidate: true });
+    if (t === 'Electrical' || t === 'Plumbing' || t === 'Solar') {
+      setValue('trainingType', t as RegisterForm['trainingType'], { shouldValidate: true });
+    }
+  }, [searchParams, setValue]);
+
+  const [uploadingUserPhoto, setUploadingUserPhoto] = useState(false);
+  const [uploadingGuarantorPhoto, setUploadingGuarantorPhoto] = useState(false);
+
+  const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET;
+
+  const handleUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'photo' | 'guarantor.photo'
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Image too large. Max 3MB.');
+      e.currentTarget.value = '';
+      return;
+    }
+
+    if (!CLOUD || !PRESET) {
+      alert('Cloudinary config missing. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET.');
+      e.currentTarget.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', PRESET);
+    formData.append('folder', 'nextgen/passport');
+
+    const setBusy = field === 'photo' ? setUploadingUserPhoto : setUploadingGuarantorPhoto;
+    setBusy(true);
+    try {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = payload?.error?.message || res.statusText || 'Upload failed';
+        alert(`Upload failed: ${msg}`);
+        e.currentTarget.value = '';
+        return;
+      }
+      setValue(field, payload.secure_url, { shouldValidate: true, shouldDirty: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fmt = (n: number) => `₦${n.toLocaleString()}`;
+
+  const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
+    try {
+      const tuition = TUITION_BY_DURATION[data.trainingDuration as 4 | 8 | 12];
+      const sixty = Math.round(tuition * 0.6);
+      const forty = tuition - sixty;
+
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          tuition,
+          firstPayment: sixty,
+          balance: forty,
+          status: 'pending',
+        }),
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Registration failed');
+      }
+
+      const message =
+        `Hello NexGen,\n` +
+        `My name is ${data.fullName}.\n` +
+        `Course: ${data.trainingType}\n` +
+        `Duration: ${data.trainingDuration} months\n` +
+        `First payment (60%): ${fmt(sixty)}\n\n` +
+        `Email: ${data.email}\n` +
+        `Phone: ${data.phone}\n\n` +
+        `I just submitted my registration. Kindly confirm next steps.`;
+
+      const wa = `https://wa.me/${BUSINESS_E164}?text=${encodeURIComponent(message)}`;
+      window.open(wa, '_blank');
+
+      alert('Registration saved. We opened WhatsApp to continue.');
+    } catch (err) {
+      console.error(err);
+      alert('Registration failed.');
+    }
+  };
+
+  const isUploading = uploadingUserPhoto || uploadingGuarantorPhoto;
 
   return (
     <>
-      <div className="font-ui">
-        <section className="bg-gradient-to-br from-blue-900 to-blue-600 text-white py-20 px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">NexGen Flow & Power</h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto">Empowering the next generation of professionals in Electrical, Solar Systems and plumbing.</p>
-          <button onClick={() => router.push('/register')} className="mt-8 bg-white text-blue-800 px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition">
-            Register Now
-          </button>
-        </section>
+      <section className="bg-gradient-to-br from-blue-900 to-blue-600 text-white py-20 px-6 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">Training Registration</h1>
+        <p className="text-lg md:text-xl max-w-3xl mx-auto">
+          Pay 60% now (via WhatsApp), 40% before graduation.
+        </p>
+      </section>
 
-        <section className="py-16 px-4 bg-white text-center">
-          <h2 className="text-3xl font-semibold mb-10 text-primary">What We Offer</h2>
-          <Accordion />
-        </section>
+      <div className="bg-white">
+        <div className="max-w-5xl mx-auto py-12 px-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-8 bg-white rounded-xl border shadow-sm p-6 md:p-8">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-ui mb-1 text-gray-700 font-medium">Full Name</label>
+                <input {...register('fullName')} className="input-field bg-white" />
+                {errors.fullName && <p className="text-danger text-sm mt-1">{errors.fullName.message}</p>}
+              </div>
+              <div>
+                <label className="block font-ui mb-1 text-gray-700 font-medium">Email</label>
+                <input {...register('email')} type="email" className="input-field bg-white" />
+                {errors.email && <p className="text-danger text-sm mt-1">{errors.email.message}</p>}
+              </div>
+            </div>
 
-        <section className="bg-gray-50 py-16 px-4">
-          <h2 className="text-3xl font-semibold mb-10 text-primary text-center">Why Train With Us?</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-ui mb-1 text-gray-700 font-medium">Phone</label>
+                <input {...register('phone')} type="tel" className="input-field bg-white" />
+                {errors.phone && <p className="text-danger text-sm mt-1">{errors.phone.message}</p>}
+              </div>
+              <div>
+                <label className="block font-ui mb-1 text-gray-700 font-medium">Upload Passport Photo</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleUpload(e, 'photo')}
+                  className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:text-gray-700 hover:file:bg-gray-50"
+                />
+              </div>
+            </div>
 
-          <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
-            <ul className="space-y-5 text-gray-800">
-              <li className="flex items-start gap-3">
-                <svg className="mt-1 h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
-                <span className="text-lg">Expert instructors with real-world experience</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="mt-1 h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
-                <span className="text-lg">Affordable training with flexible installment plans</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="mt-1 h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
-                <span className="text-lg">Modern training equipment and environment</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="mt-1 h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
-                <span className="text-lg">Mentorship, job referrals, and startup guidance</span>
-              </li>
-            </ul>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-ui mb-1 text-gray-700 font-medium">Training Type</label>
+                <select {...register('trainingType')} className="input-field bg-white">
+                  <option value="">Select</option>
+                  <option value="Electrical">Electrical</option>
+                  <option value="Plumbing">Plumbing</option>
+                  <option value="Solar">Solar</option>
+                </select>
+                {errors.trainingType && <p className="text-danger text-sm mt-1">{errors.trainingType.message}</p>}
+              </div>
+              <div>
+                <label className="block font-ui mb-1 text-gray-700 font-medium">Duration (months)</label>
+                <select {...register('trainingDuration')} className="input-field bg-white">
+                  <option value="">Select</option>
+                  <option value="4">4 months</option>
+                  <option value="8">8 months</option>
+                  <option value="12">12 months</option>
+                </select>
+                {errors.trainingDuration && (
+                  <p className="text-danger text-sm mt-1">{errors.trainingDuration.message}</p>
+                )}
+              </div>
+            </div>
 
-            <img
-              src="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=1200&auto=format&fit=crop"
-              alt="Motivation and success"
-              className="w-full h-64 md:h-80 object-cover rounded-lg shadow-sm"
-              loading="lazy"
-            />
-          </div>
-        </section>
-
-        <section className="py-16 px-4 bg-white">
-          <h2 className="text-3xl font-semibold text-primary mb-4 text-center">Program Duration & Cost</h2>
-          <p className="text-gray-600 text-center mb-10">
-            Pay in installments: 60% upfront, 40% before graduation.
-          </p>
-
-          <div className="max-w-4xl mx-auto grid gap-4 sm:hidden">
-            {[
-              { months: 4, cost: 250000 },
-              { months: 8, cost: 450000 },
-              { months: 12, cost: 700000 },
-            ].map(({ months, cost }) => {
-              const sixty = Math.round(cost * 0.6);
-              const forty = cost - sixty;
-              const fmt = (n: number) => `₦${n.toLocaleString()}`;
-              return (
-                <div key={months} className="rounded-lg border p-4 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-gray-900">{months} Months</div>
-                    <a
-                      href={`/register?duration=${months}`}
-                      className="rounded-md border border-blue-600 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-600 hover:text-white transition"
-                    >
-                      Register
-                    </a>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-700">
-                    <div className="bg-gray-50 rounded p-2">
-                      <div className="text-xs text-gray-500">Tuition</div>
-                      <div className="font-medium">{fmt(cost)}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded p-2">
-                      <div className="text-xs text-gray-500">60% Now</div>
-                      <div className="font-medium">{fmt(sixty)}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded p-2">
-                      <div className="text-xs text-gray-500">40% Before Grad</div>
-                      <div className="font-medium">{fmt(forty)}</div>
-                    </div>
-                  </div>
+            <div>
+              <h2 className="text-2xl font-ui font-semibold text-primary mb-4">Guarantor Information</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block font-ui mb-1 text-gray-700 font-medium">Guarantor Full Name</label>
+                  <input {...register('guarantor.fullName')} className="input-field bg-white" />
+                  {errors.guarantor?.fullName && (
+                    <p className="text-danger text-sm mt-1">{errors.guarantor.fullName.message}</p>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+                <div>
+                  <label className="block font-ui mb-1 text-gray-700 font-medium">Guarantor Email</label>
+                  <input {...register('guarantor.email')} className="input-field bg-white" />
+                  {errors.guarantor?.email && (
+                    <p className="text-danger text-sm mt-1">{errors.guarantor.email.message}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block font-ui mb-1 text-gray-700 font-medium">Guarantor Phone</label>
+                  <input {...register('guarantor.phone')} className="input-field bg-white" />
+                  {errors.guarantor?.phone && (
+                    <p className="text-danger text-sm mt-1">{errors.guarantor.phone.message}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block font-ui mb-1 text-gray-700 font-medium">Upload Guarantor Photo</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleUpload(e, 'guarantor.photo')}
+                    className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:text-gray-700 hover:file:bg-gray-50"
+                  />
+                </div>
+              </div>
+            </div>
 
-          <div className="max-w-4xl mx-auto overflow-x-auto rounded-lg border hidden sm:block">
-            <table className="w-full text-left min-w-[680px]">
-              <thead className="bg-gray-50">
-                <tr className="text-gray-600 text-xs">
-                  <th className="py-2 px-3 font-semibold">Duration</th>
-                  <th className="py-2 px-3 font-semibold text-center">Tuition</th>
-                  <th className="py-2 px-3 font-semibold text-center">60% Now</th>
-                  <th className="py-2 px-3 font-semibold text-center">40% Before Graduation</th>
-                  <th className="py-2 px-3 font-semibold text-right">Action</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y text-sm">
-                {[
-                  { months: 4, cost: 250000 },
-                  { months: 8, cost: 450000 },
-                  { months: 12, cost: 700000 },
-                ].map(({ months, cost }, i) => {
-                  const sixty = Math.round(cost * 0.6);
-                  const forty = cost - sixty;
-                  const fmt = (n: number) => `₦${n.toLocaleString()}`;
-                  return (
-                    <tr key={months} className={i % 2 ? 'bg-white' : 'bg-gray-50/40'}>
-                      <td className="py-2.5 px-3 font-semibold text-gray-900 whitespace-nowrap">{months} Months</td>
-                      <td className="py-2.5 px-3 text-center">{fmt(cost)}</td>
-                      <td className="py-2.5 px-3 text-center">{fmt(sixty)}</td>
-                      <td className="py-2.5 px-3 text-center">{fmt(forty)}</td>
-                      <td className="py-2.5 px-3 text-right">
-                        <a
-                          href={`/register?duration=${months}`}
-                          className="inline-block rounded-md border border-blue-600 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-600 hover:text-white transition"
-                        >
-                          Register
-                        </a>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="bg-blue-900 text-white py-20 px-4 text-center">
-          <h2 className="text-3xl font-semibold mb-4">Ready to Begin Your Career?</h2>
-          <p className="text-lg mb-6">Join NexGen Flow & Power and learn from the best.</p>
-          <button onClick={() => router.push('/register')} className="bg-white text-blue-900 px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition">
-            Start Registration
-          </button>
-        </section>
+            <div>
+              <button
+                type="submit"
+                disabled={isSubmitting || isUploading}
+                className="w-full bg-primary text-white py-3 px-6 rounded-md hover:bg-blue-800 transition disabled:opacity-60 disabled:cursor-not-allowed text-center"
+              >
+                {isSubmitting ? 'Submitting…' : 'Submit & Continue on WhatsApp'}
+              </button>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Your details are saved as <b>pending</b>. Admin will verify after payment confirmation on WhatsApp.
+              </p>
+            </div>
+          </form>
+        </div>
       </div>
     </>
   );
