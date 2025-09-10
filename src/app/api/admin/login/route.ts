@@ -4,41 +4,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+const COOKIE_NAME = process.env.ADMIN_COOKIE_NAME;
+const MAX_AGE_SECONDS = parseInt(process.env.ADMIN_COOKIE_MAX_AGE, 10);
+
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
-        const { email, password } = await req.json();
+
+        const body = await req.json().catch(() => null);
+        if (!body?.email || !body?.password) {
+            return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
+        }
+
+        const email = String(body.email).toLowerCase().trim();
+        const password = String(body.password);
 
         const admin = await Admin.findOne({ email });
         if (!admin) {
             return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
         }
 
-        const isMatch = await bcrypt.compare(password, admin.password);
-        if (!isMatch) {
+        const ok = await bcrypt.compare(password, admin.password);
+        if (!ok) {
             return NextResponse.json({ error: 'Incorrect password' }, { status: 401 });
         }
 
         admin.lastLoggedIn = new Date();
         await admin.save();
 
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            return NextResponse.json({ error: 'Server misconfigured (JWT_SECRET missing)' }, { status: 500 });
+        }
+
         const token = jwt.sign(
-            {
-                id: admin._id,
-                email: admin.email,
-                role: admin.role,
-            },
-            process.env.JWT_SECRET!,
-            { expiresIn: '7d' }
+            { id: admin._id.toString(), email: admin.email, role: admin.role || 'editor' },
+            secret,
+            { expiresIn: `${MAX_AGE_SECONDS}s` }
         );
 
         const res = NextResponse.json({ message: 'Login successful' });
 
-        res.cookies.set('adminToken', token, {
+        res.cookies.set(COOKIE_NAME, token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60,
+            maxAge: MAX_AGE_SECONDS,
             path: '/',
         });
 
