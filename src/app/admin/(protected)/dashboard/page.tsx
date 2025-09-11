@@ -69,7 +69,7 @@ export default function AdminDashboard() {
         axios
             .get<TxApiResp>('/api/admin/transaction', {
                 params: { all: '1', sortKey: 'date', sortDir: 'desc' },
-                headers: { 'cache-control': 'no-cache' }
+                headers: { 'cache-control': 'no-cache' },
             })
             .then((r) => {
                 const data = r.data;
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
                 setTxSummary({
                     totalAmount: data.summary?.sumSuccess ?? 0,
                     success: successCount,
-                    failed: data.summary?.failed ?? 0
+                    failed: data.summary?.failed ?? 0,
                 });
             })
             .catch(() => setTxSummary(null));
@@ -86,14 +86,15 @@ export default function AdminDashboard() {
     const studentStats = useMemo(() => {
         const fully = users.filter((u) => u.paymentStatus === 'fully_paid').length;
         const partial = users.filter((u) => u.paymentStatus === 'partially_paid').length;
-        const total = fully + partial;
-        return { total, fully, partial };
+        const unpaid = users.filter((u) => u.paymentStatus === 'not_paid').length;
+        const total = users.length;
+        return { total, fully, partial, unpaid };
     }, [users]);
 
     const mediaStats = useMemo(() => {
         const byType = {
             images: media.filter((m) => m.type === 'image').length,
-            videos: media.filter((m) => m.type === 'video').length
+            videos: media.filter((m) => m.type === 'video').length,
         };
         const cat = { plumbing: { image: 0, video: 0 }, electric: { image: 0, video: 0 }, solar: { image: 0, video: 0 } };
         media.forEach((m) => {
@@ -114,14 +115,16 @@ export default function AdminDashboard() {
         </div>
     );
 
-    const StackedBar = ({ full, partial }: { full: number; partial: number }) => {
-        const total = full + partial;
+    const StackedBar = ({ full, partial, unpaid }: { full: number; partial: number; unpaid: number }) => {
+        const total = full + partial + unpaid;
         const fullW = total ? (full / total) * 100 : 0;
         const partialW = total ? (partial / total) * 100 : 0;
+        const unpaidW = total ? (unpaid / total) * 100 : 0;
         return (
             <div className="w-full h-3 rounded bg-gray-100 overflow-hidden">
                 <div className="h-3 bg-emerald-500 inline-block" style={{ width: `${fullW}%` }} />
                 <div className="h-3 bg-amber-400 inline-block" style={{ width: `${partialW}%` }} />
+                <div className="h-3 bg-red-400 inline-block" style={{ width: `${unpaidW}%` }} />
             </div>
         );
     };
@@ -134,7 +137,11 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <StatCard label="Students" value={studentStats.total} sub={`${studentStats.fully} fully • ${studentStats.partial} partial`} />
+                <StatCard
+                    label="Students"
+                    value={studentStats.total}
+                    sub={`${studentStats.fully} fully • ${studentStats.partial} partial • ${studentStats.unpaid} unpaid`}
+                />
                 <StatCard label="Images" value={mediaStats.byType.images} sub="Gallery items" />
                 <StatCard label="Videos" value={mediaStats.byType.videos} sub="Gallery items" />
                 <StatCard
@@ -152,7 +159,7 @@ export default function AdminDashboard() {
                             View students
                         </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                             <div className="text-2xl font-semibold">{studentStats.fully}</div>
                             <div className="text-sm text-gray-500">Fully</div>
@@ -163,9 +170,14 @@ export default function AdminDashboard() {
                             <div className="text-sm text-gray-500">Partial</div>
                             <div className="mt-1 text-xs text-gray-500">{pct(studentStats.partial, studentStats.total)}%</div>
                         </div>
+                        <div>
+                            <div className="text-2xl font-semibold">{studentStats.unpaid}</div>
+                            <div className="text-sm text-gray-500">Unpaid</div>
+                            <div className="mt-1 text-xs text-gray-500">{pct(studentStats.unpaid, studentStats.total)}%</div>
+                        </div>
                     </div>
                     <div className="mt-5 h-3 w-full rounded bg-gray-100 overflow-hidden">
-                        <StackedBar full={studentStats.fully} partial={studentStats.partial} />
+                        <StackedBar full={studentStats.fully} partial={studentStats.partial} unpaid={studentStats.unpaid} />
                     </div>
                 </div>
 
@@ -189,13 +201,13 @@ export default function AdminDashboard() {
                                     <div
                                         className="h-3 bg-blue-500 inline-block"
                                         style={{
-                                            width: `${(mediaStats.cat[cat].image / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%`
+                                            width: `${(mediaStats.cat[cat].image / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%`,
                                         }}
                                     />
                                     <div
                                         className="h-3 bg-purple-500 inline-block"
                                         style={{
-                                            width: `${(mediaStats.cat[cat].video / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%`
+                                            width: `${(mediaStats.cat[cat].video / Math.max(1, mediaStats.cat[cat].image + mediaStats.cat[cat].video)) * 100}%`,
                                         }}
                                     />
                                 </div>

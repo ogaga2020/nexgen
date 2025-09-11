@@ -1,16 +1,47 @@
+import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
-import { NextRequest, NextResponse } from 'next/server';
+import logger from '@/lib/logger';
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export const runtime = 'nodejs';
+
+export async function PATCH(_: Request, { params }: { params: { id: string } }) {
+    await connectDB();
+    const id = params.id;
+
+    let body: any;
     try {
-        await connectDB();
-        const deleted = await User.findByIdAndDelete(params.id);
-        if (!deleted) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-        return NextResponse.json({ message: 'User deleted successfully' });
+        body = await _.json();
     } catch {
-        return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+        return new NextResponse('Invalid JSON body', { status: 400 });
+    }
+
+    try {
+        const user = await User.findById(id);
+        if (!user) return new NextResponse('Not found', { status: 404 });
+
+        const updates: any = {};
+
+        if (typeof body.verificationStatus === 'string') {
+            updates.verificationStatus = body.verificationStatus === 'verified' ? 'verified' : 'unverified';
+            if (updates.verificationStatus === 'verified' && user.paymentStatus === 'not_paid') {
+                updates.paymentStatus = 'partially_paid';
+            }
+        }
+
+        if (body.markFullyPaid === true || body.paymentStatus === 'fully_paid') {
+            updates.paymentStatus = 'fully_paid';
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return NextResponse.json({ ok: true, user });
+        }
+
+        const updated = await User.findByIdAndUpdate(id, updates, { new: true });
+        logger.info({ route: '/api/admin/users/[id]', phase: 'patched', id, updates });
+        return NextResponse.json({ ok: true, user: updated });
+    } catch (e: any) {
+        logger.error({ route: '/api/admin/users/[id]', phase: 'error', id, message: e?.message });
+        return new NextResponse('Server error', { status: 500 });
     }
 }

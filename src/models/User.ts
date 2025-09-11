@@ -14,6 +14,7 @@ export interface IUser extends Document {
         photo: string;
     };
     paymentStatus: 'not_paid' | 'partially_paid' | 'fully_paid';
+    verificationStatus: 'unverified' | 'verified';
     dueDate: Date;
     transactions: Types.ObjectId[];
     createdAt: Date;
@@ -33,13 +34,11 @@ const UserSchema = new Schema<IUser>({
         photo: { type: String, required: true }
     },
     paymentStatus: { type: String, enum: ['not_paid', 'partially_paid', 'fully_paid'], default: 'not_paid' },
+    verificationStatus: { type: String, enum: ['unverified', 'verified'], default: 'unverified' },
     dueDate: { type: Date, required: true },
     transactions: [{ type: Schema.Types.ObjectId, ref: 'Transaction' }],
     createdAt: { type: Date, default: Date.now }
 });
 
-const User: Model<IUser> =
-    (mongoose.models.User as Model<IUser>) ||
-    mongoose.model<IUser>('User', UserSchema);
-
+const User: Model<IUser> = (mongoose.models.User as Model<IUser>) || mongoose.model<IUser>('User', UserSchema);
 export default User;
