@@ -1,10 +1,11 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
+import type { SubmitHandler, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 const FormSchema = z.object({
     fullName: z.string().min(3, 'Enter your full name'),
@@ -19,12 +20,19 @@ const FormSchema = z.object({
         phone: z.string().regex(/^(\+234|0)[789][01]\d{8}$/, 'Invalid phone'),
         photo: z.string().url('Upload a valid image URL'),
     }),
-})
+});
 
 type RegisterForm = z.infer<typeof FormSchema>;
 
+const TUITION_BY_DURATION: Record<4 | 8 | 12, number> = {
+    4: 250_000,
+    8: 450_000,
+    12: 700_000,
+};
+
+const BUSINESS_E164 = '2348039375634';
+
 export default function RegisterPage() {
-    const router = useRouter();
     const searchParams = useSearchParams();
 
     const durationParam = searchParams.get('duration');
@@ -35,13 +43,13 @@ export default function RegisterPage() {
         handleSubmit,
         setValue,
         formState: { errors, isSubmitting },
-    } = useForm({
-        resolver: zodResolver(FormSchema),
+    } = useForm<RegisterForm>({
+        resolver: zodResolver(FormSchema) as Resolver<RegisterForm>,
         defaultValues: {
-            trainingDuration: durationParam ? Number(durationParam) as 4 | 8 | 12 : undefined,
+            trainingDuration: durationParam ? (Number(durationParam) as 4 | 8 | 12) : undefined,
             trainingType:
                 typeParam === 'Electrical' || typeParam === 'Plumbing' || typeParam === 'Solar'
-                    ? (typeParam as 'Electrical' | 'Plumbing' | 'Solar')
+                    ? (typeParam as RegisterForm['trainingType'])
                     : undefined,
         },
     });
@@ -51,7 +59,7 @@ export default function RegisterPage() {
         const t = searchParams.get('type');
         if (d) setValue('trainingDuration', Number(d) as 4 | 8 | 12, { shouldValidate: true });
         if (t === 'Electrical' || t === 'Plumbing' || t === 'Solar') {
-            setValue('trainingType', t, { shouldValidate: true });
+            setValue('trainingType', t as RegisterForm['trainingType'], { shouldValidate: true });
         }
     }, [searchParams, setValue]);
 
@@ -104,34 +112,47 @@ export default function RegisterPage() {
         }
     };
 
-    const onSubmit = async (data: RegisterForm) => {
+    const fmt = (n: number) => `₦${n.toLocaleString()}`;
+
+    const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
         try {
+            const tuition = TUITION_BY_DURATION[data.trainingDuration as 4 | 8 | 12];
+            const sixty = Math.round(tuition * 0.6);
+            const forty = tuition - sixty;
+
             const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
+                body: JSON.stringify({
+                    ...data,
+                    tuition,
+                    firstPayment: sixty,
+                    balance: forty,
+                    status: 'pending',
+                }),
             });
+
             if (!res.ok) {
                 const msg = await res.text();
                 throw new Error(msg || 'Registration failed');
             }
-            const { paymentRef, amount, email } = await res.json();
-            if (paymentRef) {
-                const paystack = (window as any).PaystackPop.setup({
-                    key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-                    email,
-                    amount: amount * 100,
-                    reference: paymentRef,
-                    callback: (response: any) => {
-                        router.push(`/register/success?ref=${response.reference}`);
-                    },
-                    onClose: () => alert('Payment cancelled'),
-                });
-                paystack.openIframe();
-            } else {
-                router.push('/');
-            }
-        } catch {
+
+            const message =
+                `Hello NexGen,\n` +
+                `My name is ${data.fullName}.\n` +
+                `Course: ${data.trainingType}\n` +
+                `Duration: ${data.trainingDuration} months\n` +
+                `First payment (60%): ${fmt(sixty)}\n\n` +
+                `Email: ${data.email}\n` +
+                `Phone: ${data.phone}\n\n` +
+                `I just submitted my registration. Kindly confirm next steps.`;
+
+            const wa = `https://wa.me/${BUSINESS_E164}?text=${encodeURIComponent(message)}`;
+            window.open(wa, '_blank');
+
+            alert('Registration saved. We opened WhatsApp to continue.');
+        } catch (err) {
+            console.error(err);
             alert('Registration failed.');
         }
     };
@@ -142,15 +163,14 @@ export default function RegisterPage() {
         <>
             <section className="bg-gradient-to-br from-blue-900 to-blue-600 text-white py-20 px-6 text-center">
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">Training Registration</h1>
-                <p className="text-lg md:text-xl max-w-3xl mx-auto">Pay 60% now, 40% before graduation.</p>
+                <p className="text-lg md:text-xl max-w-3xl mx-auto">
+                    Pay 60% now (via WhatsApp), 40% before graduation.
+                </p>
             </section>
 
             <div className="bg-white">
                 <div className="max-w-5xl mx-auto py-12 px-4">
-                    <form
-                        onSubmit={handleSubmit(onSubmit)}
-                        className="grid gap-8 bg-white rounded-xl border shadow-sm p-6 md:p-8"
-                    >
+                    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-8 bg-white rounded-xl border shadow-sm p-6 md:p-8">
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block font-ui mb-1 text-gray-700 font-medium">Full Name</label>
@@ -248,8 +268,11 @@ export default function RegisterPage() {
                                 disabled={isSubmitting || isUploading}
                                 className="w-full bg-primary text-white py-3 px-6 rounded-md hover:bg-blue-800 transition disabled:opacity-60 disabled:cursor-not-allowed text-center"
                             >
-                                {isSubmitting ? 'Submitting…' : 'Submit & Pay 60%'}
+                                {isSubmitting ? 'Submitting…' : 'Submit & Continue on WhatsApp'}
                             </button>
+                            <p className="text-xs text-gray-500 mt-2 text-center">
+                                Your details are saved as <b>pending</b>. Admin will verify after payment confirmation on WhatsApp.
+                            </p>
                         </div>
                     </form>
                 </div>
