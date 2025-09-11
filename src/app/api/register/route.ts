@@ -1,19 +1,28 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import Registration from '@/models/Registration';
+import User from '@/models/User';
+
+export const runtime = 'nodejs';
 
 type TrainingDuration = 4 | 8 | 12;
+type TrainingType = 'Electrical' | 'Plumbing' | 'Solar';
 
 const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
-    4: 250_000,
-    8: 450_000,
-    12: 700_000,
+    4: 400_000,
+    8: 800_000,
+    12: 1_100_000,
 };
 
 const WHATSAPP_E164 = process.env.WHATSAPP_E164 || '2348039375634';
 
 function fmtNaira(n: number) {
     return `₦${Number(n).toLocaleString()}`;
+}
+
+function addMonths(date: Date, months: number) {
+    const d = new Date(date);
+    d.setMonth(d.getMonth() + months);
+    return d;
 }
 
 export async function POST(req: Request) {
@@ -33,7 +42,6 @@ export async function POST(req: Request) {
         photo,
         trainingType,
         trainingDuration,
-        intakeMonth,
         guarantor,
     } = body || {};
 
@@ -49,31 +57,29 @@ export async function POST(req: Request) {
         return new NextResponse('Invalid trainingDuration', { status: 400 });
     }
 
-    const tuition = TUITION_BY_DURATION[Number(trainingDuration) as TrainingDuration];
-    const firstPayment = Math.round(tuition * 0.6);
-    const balance = tuition - firstPayment;
-
     try {
-        const doc = await Registration.create({
+        const tuition = TUITION_BY_DURATION[Number(trainingDuration) as TrainingDuration];
+        const firstPayment = Math.round(tuition * 0.6);
+        const balance = tuition - firstPayment;
+
+        const doc = await User.create({
             fullName,
             email,
             phone,
             photo,
-            trainingType,
-            trainingDuration,
-            intakeMonth,
+            trainingType: trainingType as TrainingType,
+            trainingDuration: Number(trainingDuration) as TrainingDuration,
             guarantor,
-            verificationStatus: 'pending',
-            tuition,
-            firstPayment,
-            balance,
+            paymentStatus: 'not_paid',
+            dueDate: addMonths(new Date(), Number(trainingDuration)),
+            transactions: [],
         });
 
         const lines = [
             `Hello NexGen,`,
             `My name is ${fullName}.`,
             `Course: ${trainingType}`,
-            `Duration: ${trainingDuration} months${intakeMonth ? ` (${intakeMonth})` : ''}`,
+            `Duration: ${trainingDuration} months`,
             `First payment (60%): ${fmtNaira(firstPayment)}`,
             ``,
             `Email: ${email}`,
@@ -94,10 +100,10 @@ export async function POST(req: Request) {
             waUrl,
         });
     } catch (e: any) {
-        if (e?.code === 11000) {
-            return new NextResponse('A similar registration already exists.', { status: 409 });
-        }
         console.error('Registration error:', e);
-        return new NextResponse('Server error', { status: 500 });
+        if (e?.code === 11000) {
+            return new NextResponse('A user with this email already exists.', { status: 409 });
+        }
+        return new NextResponse(e?.message || 'Server error', { status: 500 });
     }
 }

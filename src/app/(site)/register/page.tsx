@@ -164,7 +164,7 @@ export default function RegisterPage() {
             <section className="bg-gradient-to-br from-blue-900 to-blue-600 text-white py-20 px-6 text-center">
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">Training Registration</h1>
                 <p className="text-lg md:text-xl max-w-3xl mx-auto">
-                    Pay 60% now (via WhatsApp), 40% before graduation.
+                    Pay 60% now, 40% before graduation.
                 </p>
             </section>
 
@@ -268,10 +268,10 @@ export default function RegisterPage() {
                                 disabled={isSubmitting || isUploading}
                                 className="w-full bg-primary text-white py-3 px-6 rounded-md hover:bg-blue-800 transition disabled:opacity-60 disabled:cursor-not-allowed text-center"
                             >
-                                {isSubmitting ? 'Submitting…' : 'Submit & Continue on WhatsApp'}
+                                {isSubmitting ? 'Submitting…' : 'Submit Registration'}
                             </button>
                             <p className="text-xs text-gray-500 mt-2 text-center">
-                                Your details are saved as <b>pending</b>. Admin will verify after payment confirmation on WhatsApp.
+                                Your details will be verified by our Admin after payment confirmation.
                             </p>
                         </div>
                     </form>
