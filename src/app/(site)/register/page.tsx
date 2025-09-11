@@ -34,7 +34,6 @@ const BUSINESS_E164 = '2348039375634';
 
 export default function RegisterPage() {
     const searchParams = useSearchParams();
-
     const durationParam = searchParams.get('duration');
     const typeParam = searchParams.get('type');
 
@@ -42,6 +41,7 @@ export default function RegisterPage() {
         register,
         handleSubmit,
         setValue,
+        reset,
         formState: { errors, isSubmitting },
     } = useForm<RegisterForm>({
         resolver: zodResolver(FormSchema) as Resolver<RegisterForm>,
@@ -80,18 +80,15 @@ export default function RegisterPage() {
             e.currentTarget.value = '';
             return;
         }
-
         if (!CLOUD || !PRESET) {
             alert('Cloudinary config missing. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET.');
             e.currentTarget.value = '';
             return;
         }
-
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', PRESET);
         formData.append('folder', 'nextgen/passport');
-
         const setBusy = field === 'photo' ? setUploadingUserPhoto : setUploadingGuarantorPhoto;
         setBusy(true);
         try {
@@ -119,7 +116,6 @@ export default function RegisterPage() {
             const tuition = TUITION_BY_DURATION[data.trainingDuration as 4 | 8 | 12];
             const sixty = Math.round(tuition * 0.6);
             const forty = tuition - sixty;
-
             const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -131,12 +127,10 @@ export default function RegisterPage() {
                     status: 'pending',
                 }),
             });
-
             if (!res.ok) {
                 const msg = await res.text();
                 throw new Error(msg || 'Registration failed');
             }
-
             const message =
                 `Hello NexGen,\n` +
                 `My name is ${data.fullName}.\n` +
@@ -145,12 +139,11 @@ export default function RegisterPage() {
                 `First payment (60%): ${fmt(sixty)}\n\n` +
                 `Email: ${data.email}\n` +
                 `Phone: ${data.phone}\n\n` +
-                `I just submitted my registration. Kindly confirm next steps.`;
-
+                `Please send your bank/payment details so I can make the first payment.`;
             const wa = `https://wa.me/${BUSINESS_E164}?text=${encodeURIComponent(message)}`;
             window.open(wa, '_blank');
-
             alert('Registration saved. We opened WhatsApp to continue.');
+            reset();
         } catch (err) {
             console.error(err);
             alert('Registration failed.');
@@ -167,7 +160,6 @@ export default function RegisterPage() {
                     Pay 60% now, 40% before graduation.
                 </p>
             </section>
-
             <div className="bg-white">
                 <div className="max-w-5xl mx-auto py-12 px-4">
                     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-8 bg-white rounded-xl border shadow-sm p-6 md:p-8">
@@ -183,7 +175,6 @@ export default function RegisterPage() {
                                 {errors.email && <p className="text-danger text-sm mt-1">{errors.email.message}</p>}
                             </div>
                         </div>
-
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block font-ui mb-1 text-gray-700 font-medium">Phone</label>
@@ -200,7 +191,6 @@ export default function RegisterPage() {
                                 />
                             </div>
                         </div>
-
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block font-ui mb-1 text-gray-700 font-medium">Training Type</label>
@@ -225,7 +215,6 @@ export default function RegisterPage() {
                                 )}
                             </div>
                         </div>
-
                         <div>
                             <h2 className="text-2xl font-ui font-semibold text-primary mb-4">Guarantor Information</h2>
                             <div className="grid md:grid-cols-2 gap-6">
@@ -261,7 +250,6 @@ export default function RegisterPage() {
                                 </div>
                             </div>
                         </div>
-
                         <div>
                             <button
                                 type="submit"
