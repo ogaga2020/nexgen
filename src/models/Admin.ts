@@ -16,7 +16,7 @@ export interface IAdmin extends Document {
 const AdminSchema = new Schema<IAdmin>(
     {
         fullName: { type: String, required: true },
-        email: { type: String, required: true, unique: true },
+        email: { type: String, required: true, unique: true, lowercase: true, trim: true },
         phone: { type: String, required: true },
         password: { type: String, required: true },
         role: { type: String, enum: ['superadmin', 'editor'], default: 'editor' },

@@ -19,9 +19,9 @@ export default function AdminEntryPage() {
 
     useEffect(() => {
         axios
-            .get('/api/admin/create')
+            .get('/api/admin/create', { headers: { 'cache-control': 'no-cache' } })
             .then((res) => setShowCreate(!res.data.exists))
-            .catch(() => setShowCreate(true));
+            .catch(() => setShowCreate(false));
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

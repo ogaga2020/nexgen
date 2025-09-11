@@ -19,48 +19,48 @@ export async function GET() {
     try {
         await connectDB();
         const count = await Admin.countDocuments({});
-        return NextResponse.json({ exists: count > 0 });
+        const res = NextResponse.json({ exists: count > 0 });
+        res.headers.set('Cache-Control', 'no-store');
+        return res;
     } catch {
-        return NextResponse.json({ exists: false });
+        const res = NextResponse.json({ error: 'Failed to check' }, { status: 500 });
+        res.headers.set('Cache-Control', 'no-store');
+        return res;
     }
 }
 
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
-
         const json = await req.json();
         const parsed = BodySchema.safeParse(json);
         if (!parsed.success) {
             const msg = parsed.error.issues.map((i) => i.message).join(', ');
             return NextResponse.json({ error: msg || 'Invalid request' }, { status: 400 });
         }
-
         const { fullName, email, phone, password } = parsed.data;
-
-        const exists = await Admin.findOne({ email }).lean().exec();
+        const emailNorm = email.toLowerCase().trim();
+        const exists = await Admin.findOne({ email: emailNorm }).lean().exec();
         if (exists) {
             return NextResponse.json({ error: 'Admin already exists' }, { status: 400 });
         }
-
         const hashed = await bcrypt.hash(password, 10);
-
         await Admin.create({
             fullName,
-            email,
+            email: emailNorm,
             phone,
             password: hashed,
             role: 'editor'
         });
-
-        await sendMail({
-            to: email,
-            subject: 'Your NexGen Admin Access',
-            html: adminAccountCreated(fullName, email, phone, password)
-        });
-
+        try {
+            await sendMail({
+                to: emailNorm,
+                subject: 'Your NexGen Admin Access',
+                html: adminAccountCreated(fullName, emailNorm, phone, password)
+            });
+        } catch { }
         return NextResponse.json({ ok: true, message: 'Admin created successfully' });
-    } catch (err) {
+    } catch {
         return NextResponse.json({ error: 'Failed to create admin' }, { status: 500 });
     }
 }
