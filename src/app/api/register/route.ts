@@ -28,11 +28,14 @@ function addMonths(date: Date, months: number) {
 
 function redactBody(raw: any) {
     if (!raw) return raw;
-    const clone: any = { ...raw };
-    if (clone.photo) clone.photo = '[url]';
-    if (clone?.guarantor?.photo) clone.guarantor.photo = '[url]';
-    if (clone.password) clone.password = '***REDACTED***';
-    return clone;
+    return {
+        ...raw,
+        photo: raw?.photo ? '[url]' : raw?.photo,
+        guarantor: raw?.guarantor
+            ? { ...raw.guarantor, photo: raw.guarantor?.photo ? '[url]' : raw.guarantor?.photo }
+            : raw?.guarantor,
+        password: raw?.password ? '***REDACTED***' : raw?.password,
+    };
 }
 
 export async function POST(req: Request) {

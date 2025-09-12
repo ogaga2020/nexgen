@@ -113,36 +113,34 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         if (body.markFullyPaid === true || body.paymentStatus === 'fully_paid') {
             updates.paymentStatus = 'fully_paid'
 
-            const tuition = TUITION_BY_DURATION[user.trainingDuration]
+            const tuition = TUITION_BY_DURATION[user.trainingDuration as TrainingDuration]
+            const expectedInitial = Math.round(tuition * 0.6)
+            const expectedBalance = tuition - expectedInitial
 
-            const initialTx = await Transaction.findOne({ userId: user._id, type: 'initial' }).sort({ createdAt: 1 })
+            await Transaction.updateOne(
+                { userId: user._id, type: 'initial' },
+                { $set: { amount: expectedInitial, status: 'success' } }
+            )
 
-            if (initialTx) {
-                initialTx.type = 'balance'
-                initialTx.amount = tuition
-                initialTx.status = 'success'
-                await initialTx.save()
+            const balanceTx = await Transaction.findOne({ userId: user._id, type: 'balance' }).sort({ createdAt: 1 })
+            if (balanceTx) {
+                balanceTx.amount = expectedBalance
+                balanceTx.status = 'success'
+                await balanceTx.save()
             } else {
-                const existingBalance = await Transaction.findOne({ userId: user._id, type: 'balance' }).sort({ createdAt: -1 })
-                if (existingBalance) {
-                    existingBalance.amount = tuition
-                    existingBalance.status = 'success'
-                    await existingBalance.save()
-                } else {
-                    await Transaction.create({
-                        userId: user._id,
-                        amount: tuition,
-                        type: 'balance',
-                        reference: `BAL-${Date.now()}`,
-                        status: 'success',
-                    })
-                }
+                await Transaction.create({
+                    userId: user._id,
+                    amount: expectedBalance,
+                    type: 'balance',
+                    reference: `BAL-${Date.now()}`,
+                    status: 'success',
+                })
             }
 
             await sendMail({
                 to: ADMIN_EMAILS_TO,
                 subject: EMAIL_SUBJECTS.PAYMENT_RECORDED,
-                html: paymentRecordedTemplate(user.fullName, tuition, user.trainingType, 'Balance', 'admin'),
+                html: paymentRecordedTemplate(user.fullName, expectedBalance, user.trainingType, 'Balance', 'admin'),
             })
         }
 

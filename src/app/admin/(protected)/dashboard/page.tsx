@@ -33,11 +33,11 @@ type Tx = {
     amount: number;
     type: 'initial' | 'balance';
     reference: string;
-    status: 'success' | 'failed' | 'pending';
+    status: 'success' | 'pending';
     createdAt: string;
 };
 
-type TxSummaryFromApi = { sumSuccess: number; pending: number; failed: number };
+type TxSummaryFromApi = { sumSuccess: number; pending: number };
 
 type TxApiResp = {
     transactions: Tx[];
@@ -53,9 +53,13 @@ export default function AdminDashboard() {
 
     const [users, setUsers] = useState<User[]>([]);
     const [media, setMedia] = useState<MediaItem[]>([]);
-    const [txSummary, setTxSummary] = useState<{ totalAmount?: number; success?: number; failed?: number } | null>(null);
+    const [txSummary, setTxSummary] = useState<{ totalAmount?: number; success?: number; pending?: number } | null>(null);
+    const [showAmounts, setShowAmounts] = useState(false);
 
     useEffect(() => {
+        const v = localStorage.getItem('nextgen.dash.showAmounts');
+        setShowAmounts(v === '1');
+
         axios
             .get('/api/admin/users', { headers: { 'cache-control': 'no-cache' } })
             .then((r) => setUsers(r.data.users || []))
@@ -77,11 +81,25 @@ export default function AdminDashboard() {
                 setTxSummary({
                     totalAmount: data.summary?.sumSuccess ?? 0,
                     success: successCount,
-                    failed: data.summary?.failed ?? 0,
+                    pending: data.summary?.pending ?? 0,
                 });
             })
             .catch(() => setTxSummary(null));
     }, [error]);
+
+    const toggleAmounts = () => {
+        setShowAmounts((prev) => {
+            const next = !prev;
+            localStorage.setItem('nextgen.dash.showAmounts', next ? '1' : '0');
+            return next;
+        });
+    };
+
+    const money = (n?: number) => {
+        if (!showAmounts) return '••••';
+        if (typeof n !== 'number') return '—';
+        return `₦${n.toLocaleString()}`;
+    };
 
     const studentStats = useMemo(() => {
         const fully = users.filter((u) => u.paymentStatus === 'fully_paid').length;
@@ -131,9 +149,28 @@ export default function AdminDashboard() {
 
     return (
         <div className="max-w-7xl mx-auto py-10 px-4">
-            <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
-                <h1 className="text-3xl font-bold">Dashboard</h1>
-                <p className="text-lg mt-1">Key metrics and quick actions</p>
+            <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8 flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold">Dashboard</h1>
+                    <p className="text-lg mt-1">Key metrics and quick actions</p>
+                </div>
+                <button
+                    onClick={toggleAmounts}
+                    className="flex items-center gap-2 rounded-md bg-black/15 hover:bg-black/25 px-3 py-2"
+                    aria-label={showAmounts ? 'Hide' : 'Show'}
+                >
+                    {showAmounts ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.1 12.9A12.1 12.1 0 012 12c2.2-4.6 6.3-7.5 10-7.5 2.1 0 4.2.8 6 2.3M22 22L2 2" />
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+                            <circle cx="12" cy="12" r="3" strokeWidth={2} />
+                        </svg>
+                    )}
+                    <span className="text-sm">{showAmounts ? 'Hide' : 'Show'}</span>
+                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -146,8 +183,8 @@ export default function AdminDashboard() {
                 <StatCard label="Videos" value={mediaStats.byType.videos} sub="Gallery items" />
                 <StatCard
                     label="Payments (₦)"
-                    value={txSummary?.totalAmount ? txSummary.totalAmount.toLocaleString() : '—'}
-                    sub={`${txSummary?.success ?? '—'} success • ${txSummary?.failed ?? '—'} failed`}
+                    value={money(txSummary?.totalAmount)}
+                    sub={`${txSummary?.success ?? '—'} success • ${txSummary?.pending ?? '—'} pending`}
                 />
             </div>
 
@@ -229,9 +266,9 @@ export default function AdminDashboard() {
                     </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <StatCard label="Total Received" value={txSummary?.totalAmount ? `₦${txSummary.totalAmount.toLocaleString()}` : '—'} />
+                    <StatCard label="Total Received" value={money(txSummary?.totalAmount)} />
                     <StatCard label="Successful" value={txSummary?.success ?? '—'} />
-                    <StatCard label="Failed" value={txSummary?.failed ?? '—'} />
+                    <StatCard label="Pending" value={txSummary?.pending ?? '—'} />
                 </div>
                 {!txSummary && <div className="mt-3 text-xs text-gray-500">No transaction data loaded.</div>}
             </div>

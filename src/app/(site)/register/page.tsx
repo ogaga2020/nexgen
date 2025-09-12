@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import type { SubmitHandler, Resolver, FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNotifier } from '@/components/Notifier';
 
@@ -50,7 +50,10 @@ export default function RegisterPage() {
         resolver: zodResolver(FormSchema) as Resolver<RegisterForm>,
         defaultValues: {
             trainingDuration: durationParam ? (Number(durationParam) as 4 | 8 | 12) : undefined,
-            trainingType: typeParam === 'Electrical' || typeParam === 'Plumbing' || typeParam === 'Solar' ? (typeParam as RegisterForm['trainingType']) : undefined,
+            trainingType:
+                typeParam === 'Electrical' || typeParam === 'Plumbing' || typeParam === 'Solar'
+                    ? (typeParam as RegisterForm['trainingType'])
+                    : undefined,
             photo: '',
             guarantor: { fullName: '', email: '', phone: '', photo: '' },
         },
@@ -67,6 +70,9 @@ export default function RegisterPage() {
 
     const [uploadingUserPhoto, setUploadingUserPhoto] = useState(false);
     const [uploadingGuarantorPhoto, setUploadingGuarantorPhoto] = useState(false);
+
+    const passportRef = useRef<HTMLInputElement>(null);
+    const guarantorRef = useRef<HTMLInputElement>(null);
 
     const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET;
@@ -111,9 +117,18 @@ export default function RegisterPage() {
     const fmt = (n: number) => `₦${n.toLocaleString()}`;
 
     const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
-        if (isUploading) { notifyError('Please wait for uploads to finish.'); return; }
-        if (!data.photo) { notifyError('Please upload your passport photo.'); return; }
-        if (!data.guarantor.photo) { notifyError('Please upload the guarantor photo.'); return; }
+        if (isUploading) {
+            notifyError('Please wait for uploads to finish.');
+            return;
+        }
+        if (!data.photo) {
+            notifyError('Please upload your passport photo.');
+            return;
+        }
+        if (!data.guarantor.photo) {
+            notifyError('Please upload the guarantor photo.');
+            return;
+        }
 
         try {
             const tuition = TUITION_BY_DURATION[data.trainingDuration as 4 | 8 | 12];
@@ -144,6 +159,11 @@ export default function RegisterPage() {
             const wa = `https://wa.me/${BUSINESS_E164}?text=${encodeURIComponent(message)}`;
             const win = window.open(wa, '_blank');
             if (!win) notifyError('Popup blocked. Please allow popups or tap this button again.');
+
+            passportRef.current && (passportRef.current.value = '');
+            guarantorRef.current && (guarantorRef.current.value = '');
+            setValue('photo', '', { shouldDirty: false });
+            setValue('guarantor.photo', '', { shouldDirty: false });
 
             reset({
                 fullName: '',
@@ -212,6 +232,8 @@ export default function RegisterPage() {
                                 <input
                                     type="file"
                                     accept="image/*"
+                                    ref={passportRef}
+                                    disabled={uploadingUserPhoto || isSubmitting}
                                     onChange={(e) => handleUpload(e, 'photo')}
                                     className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:text-gray-700 hover:file:bg-gray-50"
                                 />
@@ -265,6 +287,8 @@ export default function RegisterPage() {
                                     <input
                                         type="file"
                                         accept="image/*"
+                                        ref={guarantorRef}
+                                        disabled={uploadingGuarantorPhoto || isSubmitting}
                                         onChange={(e) => handleUpload(e, 'guarantor.photo')}
                                         className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:text-gray-700 hover:file:bg-gray-50"
                                     />

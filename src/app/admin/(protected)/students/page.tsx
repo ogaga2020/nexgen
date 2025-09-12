@@ -413,7 +413,7 @@ function UserDetailsModal({
                         Close
                     </button>
 
-                    <div className="md:hidden flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {full.verificationStatus !== 'verified' && full.paymentStatus === 'not_paid' && (
                             <button
                                 disabled={busy}
