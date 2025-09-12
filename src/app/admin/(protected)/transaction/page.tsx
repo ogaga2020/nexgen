@@ -102,12 +102,13 @@ export default function TransactionsPage() {
     }, [page, month, status, tType, search, sortKey, sortDir]);
 
     useEffect(() => {
-        if (auditOpen) document.body.style.overflow = 'hidden'
-        else document.body.style.overflow = ''
+        if (auditOpen) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = '';
         return () => {
-            document.body.style.overflow = ''
-        }
-    }, [auditOpen])
+            document.body.style.overflow = '';
+        };
+    }, [auditOpen]);
+
     const exportToExcel = async () => {
         const params = new URLSearchParams();
         params.set('all', '1');
@@ -146,15 +147,15 @@ export default function TransactionsPage() {
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     const openAudit = async (userId: string) => {
-        setAuditOpen(true)
-        setAuditLoading(true)
+        setAuditOpen(true);
+        setAuditLoading(true);
         try {
-            const { data } = await axios.get<Audit>(`/api/admin/transaction/audit/${userId}`)
-            setAudit(data)
+            const { data } = await axios.get<Audit>(`/api/admin/transaction/audit/${userId}`);
+            setAudit(data);
         } finally {
-            setAuditLoading(false)
+            setAuditLoading(false);
         }
-    }
+    };
 
     return (
         <>
@@ -283,7 +284,7 @@ export default function TransactionsPage() {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
+                <div className="hidden md:block overflow-x-auto rounded-xl border bg-white shadow-sm">
                     <table className="w-full text-sm">
                         <thead className="bg-gray-50 text-gray-700">
                             <tr>
@@ -328,6 +329,33 @@ export default function TransactionsPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                <div className="md:hidden space-y-2">
+                    {transactions.map((t) => (
+                        <div key={t._id} className="rounded-xl border bg-white p-3 flex items-center justify-between">
+                            <div className="min-w-0">
+                                <p className="font-medium truncate">{t.user.fullName}</p>
+                                <p className="text-xs text-gray-500 truncate">{t.user.email}</p>
+                                <div className="mt-1 flex items-center gap-2 text-xs">
+                                    <span className="font-semibold">₦{t.amount.toLocaleString()}</span>
+                                    <span className="capitalize text-gray-600">{t.type}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${badge(t.status)}`}>{t.status}</span>
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500">Ref: {t.reference}</p>
+                                <p className="text-[11px] text-gray-400">{new Date(t.createdAt).toLocaleString()}</p>
+                            </div>
+                            <button
+                                onClick={() => openAudit(t.userId)}
+                                className="ml-3 shrink-0 rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm text-white"
+                            >
+                                View
+                            </button>
+                        </div>
+                    ))}
+                    {transactions.length === 0 && (
+                        <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No transactions found.'}</p>
+                    )}
                 </div>
 
                 {Math.max(1, Math.ceil(total / pageSize)) > 1 && (

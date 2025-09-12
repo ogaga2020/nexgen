@@ -22,10 +22,13 @@ type User = {
 
 const ITEMS_PER_PAGE = 20;
 
-const cdn = (url?: string, w = 96, h = 96) =>
-    url && url.includes('/upload/')
+const cdn = (url?: string, w = 96, h = 96) => {
+    if (!url) return '';
+    if (/\[url\]/i.test(url)) return '';
+    return url.includes('/upload/')
         ? url.replace('/upload/', `/upload/f_auto,q_auto,c_fill,w_${w},h_${h}/`)
-        : url || '';
+        : url;
+};
 
 export default function StudentsPage() {
     const [users, setUsers] = useState<User[]>([]);
@@ -109,8 +112,12 @@ export default function StudentsPage() {
                 Phone: u.phone,
                 Training: u.trainingType,
                 Duration: `${u.trainingDuration} months`,
-                Status: u.paymentStatus === 'fully_paid' ? 'Fully paid' : u.paymentStatus === 'partially_paid' ? 'Partially paid' : 'Unpaid',
-                // Verification: u.verificationStatus === 'verified' ? 'Verified' : 'Unverified',
+                Status:
+                    u.paymentStatus === 'fully_paid'
+                        ? 'Fully paid'
+                        : u.paymentStatus === 'partially_paid'
+                            ? 'Partially paid'
+                            : 'Unpaid',
             }));
             const ws = XLSX.utils.json_to_sheet(sheetData);
             const wb = XLSX.utils.book_new();
@@ -174,7 +181,7 @@ export default function StudentsPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg shadow bg-white">
+                <div className="hidden md:block overflow-x-auto rounded-lg shadow bg-white">
                     <table className="w-full text-sm border-collapse">
                         <thead className="bg-gray-100 text-gray-700">
                             <tr>
@@ -221,6 +228,24 @@ export default function StudentsPage() {
                     {users.length === 0 && <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No students found.'}</p>}
                 </div>
 
+                <div className="md:hidden space-y-2">
+                    {users.map((u) => (
+                        <div key={u._id} className="rounded-lg border bg-white px-4 py-3 flex items-center justify-between">
+                            <div className="min-w-0">
+                                <p className="font-medium truncate">{u.fullName}</p>
+                                <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedUser(u)}
+                                className="ml-3 shrink-0 rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm text-white"
+                            >
+                                View
+                            </button>
+                        </div>
+                    ))}
+                    {users.length === 0 && <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No students found.'}</p>}
+                </div>
+
                 {total > 1 && (
                     <div className="mt-6 flex justify-center gap-2">
                         {Array.from({ length: Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)) }, (_, i) => i + 1).map((page) => (
@@ -258,6 +283,7 @@ function UserDetailsModal({
 }) {
     const { error, success } = useNotifier();
     const [busy, setBusy] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
 
     const verifyAndMarkPartial = async () => {
         try {
@@ -287,54 +313,71 @@ function UserDetailsModal({
         }
     };
 
+    const handleDelete = async () => {
+        if (!window.confirm('Delete this student?')) return;
+        try {
+            setBusy(true);
+            await axios.delete(`/api/admin/users/${user._id}`);
+            success('Student deleted');
+            onUpdated();
+            onClose();
+        } catch (e: any) {
+            error(e?.response?.data?.error || e?.message || 'Failed to delete');
+        } finally {
+            setBusy(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
             <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg max-h-[90vh] overflow-y-auto p-6">
                 <h2 className="text-xl font-semibold text-[var(--primary)] mb-4">{user.fullName}&apos;s Details</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
-                    <div>
-                        {user.photo ? (
-                            <img src={cdn(user.photo, 96, 96)} alt={user.fullName} className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
-                        ) : (
-                            <div className="w-24 h-24 rounded-md border bg-gray-100" />
-                        )}
-                    </div>
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
+                        <div>
+                            {user.photo ? (
+                                <img src={cdn(user.photo, 96, 96)} alt={user.fullName} className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                                <div className="w-24 h-24 rounded-md border bg-gray-100" />
+                            )}
+                        </div>
 
-                    <div className="space-y-2">
-                        <p><strong>Email:</strong> {user.email}</p>
-                        <p><strong>Phone:</strong> {user.phone}</p>
-                        <p><strong>Training:</strong> {user.trainingType}</p>
-                        <p><strong>Duration:</strong> {user.trainingDuration} months</p>
-                        <p className="flex items-center gap-2">
-                            <strong>Status:</strong>
-                            <span>{user.paymentStatus === 'fully_paid' ? 'Fully paid' : user.paymentStatus === 'partially_paid' ? 'Partially paid' : 'Unpaid'}</span>
-                        </p>
-                    </div>
-                </div>
-
-                {user.guarantor ? (
-                    <div className="mt-6 border-t pt-4">
-                        <h3 className="font-semibold mb-2">Guarantor Info</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
-                            <div>
-                                {user.guarantor?.photo ? (
-                                    <img src={cdn(user.guarantor.photo, 96, 96)} alt="Guarantor" className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
-                                ) : (
-                                    <div className="w-24 h-24 rounded-md border bg-gray-100" />
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <p><strong>Name:</strong> {user.guarantor.fullName}</p>
-                                <p><strong>Email:</strong> {user.guarantor.email}</p>
-                                <p><strong>Phone:</strong> {user.guarantor.phone}</p>
-                            </div>
+                        <div className="space-y-2">
+                            <p><strong>Email:</strong> {user.email}</p>
+                            <p><strong>Phone:</strong> {user.phone}</p>
+                            <p><strong>Training:</strong> {user.trainingType}</p>
+                            <p><strong>Duration:</strong> {user.trainingDuration} months</p>
+                            <p className="flex items-center gap-2">
+                                <strong>Status:</strong>
+                                <span>{user.paymentStatus === 'fully_paid' ? 'Fully paid' : user.paymentStatus === 'partially_paid' ? 'Partially paid' : 'Unpaid'}</span>
+                            </p>
                         </div>
                     </div>
-                ) : null}
 
-                <div className="flex items-center justify-end gap-3 mt-6">
+                    {user.guarantor && (
+                        <div className="border-t pt-4">
+                            <h3 className="font-semibold mb-2">Guarantor Info</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
+                                <div>
+                                    {user.guarantor.photo ? (
+                                        <img src={cdn(user.guarantor.photo, 96, 96)} alt="Guarantor" className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
+                                    ) : (
+                                        <div className="w-24 h-24 rounded-md border bg-gray-100" />
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <p><strong>Name:</strong> {user.guarantor.fullName}</p>
+                                    <p><strong>Email:</strong> {user.guarantor.email}</p>
+                                    <p><strong>Phone:</strong> {user.guarantor.phone}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-end gap-2 mt-6">
                     {user.verificationStatus !== 'verified' && user.paymentStatus === 'not_paid' && (
                         <button disabled={busy} onClick={verifyAndMarkPartial} className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-60">
                             Verify & Mark Partial
@@ -345,8 +388,26 @@ function UserDetailsModal({
                             Mark Fully Paid
                         </button>
                     )}
+                    <button onClick={() => setEditOpen(true)} className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">
+                        Edit
+                    </button>
+                    <button onClick={handleDelete} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60" disabled={busy}>
+                        Delete
+                    </button>
                     <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400">Close</button>
                 </div>
+
+                {editOpen && (
+                    <EditUserModal
+                        user={user}
+                        onClose={() => setEditOpen(false)}
+                        onSaved={() => {
+                            setEditOpen(false);
+                            onUpdated();
+                            onClose();
+                        }}
+                    />
+                )}
             </div>
         </div>
     );
@@ -384,10 +445,13 @@ function EditUserModal({ user, onClose, onSaved }: { user: User; onClose: () => 
     const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string | undefined;
     const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET as string | undefined;
 
-    const cdn = (url?: string, w = 160, h = 160) =>
-        url && url.includes('/upload/')
+    const cdn = (url?: string, w = 160, h = 160) => {
+        if (!url) return '';
+        if (/\[url\]/i.test(url)) return '';
+        return url.includes('/upload/')
             ? url.replace('/upload/', `/upload/f_auto,q_auto,c_fill,w_${w},h_${h}/`)
-            : url || '';
+            : url;
+    };
 
     const upload = async (file: File, cb: (url: string) => void) => {
         if (!CLOUD || !PRESET) {
@@ -414,7 +478,10 @@ function EditUserModal({ user, onClose, onSaved }: { user: User; onClose: () => 
     const save = async () => {
         try {
             setBusy(true);
-            await axios.patch(`/api/admin/users/${user._id}`, form);
+            const payload = JSON.parse(JSON.stringify(form));
+            if (/\[url\]/i.test(payload.photo)) delete payload.photo;
+            if (payload.guarantor && /\[url\]/i.test(payload.guarantor.photo)) delete payload.guarantor.photo;
+            await axios.patch(`/api/admin/users/${user._id}`, payload);
             success('Student updated');
             onSaved();
             onClose();
