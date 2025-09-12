@@ -110,7 +110,7 @@ export default function StudentsPage() {
                 Training: u.trainingType,
                 Duration: `${u.trainingDuration} months`,
                 Status: u.paymentStatus === 'fully_paid' ? 'Fully paid' : u.paymentStatus === 'partially_paid' ? 'Partially paid' : 'Unpaid',
-                Verification: u.verificationStatus === 'verified' ? 'Verified' : 'Unverified',
+                // Verification: u.verificationStatus === 'verified' ? 'Verified' : 'Unverified',
             }));
             const ws = XLSX.utils.json_to_sheet(sheetData);
             const wb = XLSX.utils.book_new();

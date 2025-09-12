@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
+import Transaction from '@/models/Transaction';
 import logger from '@/lib/logger';
 import { randomUUID } from 'crypto';
 
@@ -67,20 +68,19 @@ export async function POST(req: Request) {
         return new NextResponse('Invalid JSON body', { status: 400 });
     }
 
-    const {
-        fullName,
-        email,
-        phone,
-        photo,
-        trainingType,
-        trainingDuration,
-        guarantor,
-    } = body || {};
+    const { fullName, email, phone, photo, trainingType, trainingDuration, guarantor } = body || {};
 
     if (
-        !fullName || !email || !phone || !photo ||
-        !trainingType || !trainingDuration ||
-        !guarantor?.fullName || !guarantor?.email || !guarantor?.phone || !guarantor?.photo
+        !fullName ||
+        !email ||
+        !phone ||
+        !photo ||
+        !trainingType ||
+        !trainingDuration ||
+        !guarantor?.fullName ||
+        !guarantor?.email ||
+        !guarantor?.phone ||
+        !guarantor?.photo
     ) {
         logger.warn({
             requestId,
@@ -116,9 +116,20 @@ export async function POST(req: Request) {
             trainingDuration: Number(trainingDuration) as TrainingDuration,
             guarantor,
             paymentStatus: 'not_paid',
+            verificationStatus: 'unverified',
             dueDate: addMonths(new Date(), Number(trainingDuration)),
             transactions: [],
         });
+
+        const initialTx = await Transaction.create({
+            userId: doc._id,
+            amount: firstPayment,
+            type: 'initial',
+            reference: `REG-${Date.now()}`,
+            status: 'pending',
+        });
+        doc.transactions.push(initialTx._id);
+        await doc.save();
 
         const lines = [
             `Hello NexGen Admin,`,
@@ -146,6 +157,7 @@ export async function POST(req: Request) {
             route: '/api/register',
             phase: 'success',
             userId: doc._id.toString(),
+            txId: initialTx._id.toString(),
             durationMs: Date.now() - startedAt,
         });
 
@@ -175,6 +187,6 @@ export async function POST(req: Request) {
         }
 
         const isDev = process.env.NODE_ENV !== 'production';
-        return new NextResponse(isDev ? (e?.message || 'Server error') : 'Server error', { status: 500 });
+        return new NextResponse(isDev ? e?.message || 'Server error' : 'Server error', { status: 500 });
     }
 }

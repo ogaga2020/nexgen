@@ -1,4 +1,6 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
+import logger from "@/lib/logger";
+import { MAIN_ADMIN_EMAIL, EMAIL_FROM_NAME } from "@/utils/constants";
 
 export const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -19,13 +21,14 @@ export async function sendMail({
 }) {
     try {
         await transporter.sendMail({
-            from: `"NexGen Flow and Power" <${process.env.ADMIN_EMAIL}>`,
+            from: `"${EMAIL_FROM_NAME}" <${MAIN_ADMIN_EMAIL}>`,
             to,
             subject,
             html,
         });
-    } catch (error) {
-        console.error('[EMAIL_SEND_ERROR]', error);
-        throw new Error('Failed to send email');
+        logger.info({ route: "lib/email.sendMail", to, subject, ok: true });
+    } catch (error: any) {
+        logger.error({ route: "lib/email.sendMail", to, subject, error: error?.message });
+        throw new Error("Failed to send email");
     }
 }

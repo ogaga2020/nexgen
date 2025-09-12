@@ -2,47 +2,50 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
 import { sendMail } from '@/lib/email';
-import {
-    installmentReminderTemplate,
-    installmentReminderAdmin,
-} from '@/lib/templates';
+import { EMAIL_SUBJECTS, MAIN_ADMIN_EMAIL } from '@/utils/constants';
+import { twoWeeksToFinishReminderTemplate, adminTwoWeeksReminderTemplate } from '@/lib/templates';
 
-import { format } from 'date-fns';
+export const runtime = 'nodejs';
 
 export async function GET() {
     try {
         await connectDB();
 
-        const now = new Date();
-        const oneMonthAhead = new Date();
-        oneMonthAhead.setMonth(now.getMonth() + 1);
+        const today = new Date();
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+
+        const twoWeeksAheadStart = new Date(start);
+        twoWeeksAheadStart.setDate(twoWeeksAheadStart.getDate() + 14);
+        const twoWeeksAheadEnd = new Date(end);
+        twoWeeksAheadEnd.setDate(twoWeeksAheadEnd.getDate() + 14);
 
         const users = await User.find({
-            paymentType: 'installment',
-            endDate: { $gte: now, $lte: oneMonthAhead },
-        });
+            paymentStatus: { $ne: 'fully_paid' },
+            dueDate: { $gte: twoWeeksAheadStart, $lt: twoWeeksAheadEnd },
+        })
+            .select('fullName email trainingType dueDate')
+            .lean();
 
-        const adminEmail = process.env.ADMIN_EMAIL!;
-
-        for (const user of users) {
-            const formattedEndDate = format(new Date(user.endDate), 'MMMM d, yyyy');
+        for (const u of users) {
+            const dueStr = new Date(u.dueDate).toLocaleDateString();
 
             await sendMail({
-                to: user.email,
-                subject: 'Installment Payment Reminder',
-                html: installmentReminderTemplate(user.fullName, user.program, formattedEndDate),
+                to: u.email,
+                subject: EMAIL_SUBJECTS.INSTALLMENT_REMINDER,
+                html: twoWeeksToFinishReminderTemplate(u.fullName, u.trainingType, dueStr),
             });
 
             await sendMail({
-                to: adminEmail,
-                subject: 'Student Balance Due Soon',
-                html: installmentReminderAdmin(user.fullName, user.program, formattedEndDate),
+                to: MAIN_ADMIN_EMAIL,
+                subject: EMAIL_SUBJECTS.INSTALLMENT_REMINDER_ADMIN,
+                html: adminTwoWeeksReminderTemplate(u.fullName, u.trainingType, dueStr),
             });
         }
 
-        return NextResponse.json({ message: `${users.length} reminder(s) sent.` });
-    } catch (err) {
-        console.error('[REMINDER_EMAIL_ERROR]', err);
+        return NextResponse.json({ sent: users.length });
+    } catch {
         return NextResponse.json({ error: 'Failed to send reminders' }, { status: 500 });
     }
 }

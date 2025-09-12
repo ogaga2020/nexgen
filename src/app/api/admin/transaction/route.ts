@@ -9,22 +9,21 @@ export const runtime = 'nodejs';
 const QuerySchema = z.object({
     page: z.coerce.number().min(1).default(1),
     all: z.enum(['0', '1']).default('0'),
-    status: z.enum(['success', 'failed', 'pending']).optional(),
+    status: z.enum(['success', 'pending']).optional(),
     type: z.enum(['initial', 'balance']).optional(),
     search: z.string().trim().optional(),
     month: z.string().regex(/^(?:all|[1-9]|1[0-2])$/).optional(),
     sortKey: z.enum(['date', 'amount']).default('date'),
-    sortDir: z.enum(['asc', 'desc']).default('desc')
+    sortDir: z.enum(['asc', 'desc']).default('desc'),
 });
 
-type TxStatus = 'success' | 'failed' | 'pending';
+type TxStatus = 'success' | 'pending';
 type TxType = 'initial' | 'balance';
 
 type TxDoc = {
     _id: unknown;
     amount: number;
     type: TxType;
-    paymentMethod: 'Paystack';
     reference: string;
     status: TxStatus;
     createdAt: Date;
@@ -58,7 +57,7 @@ export async function GET(req: NextRequest) {
         if (search && search.trim()) {
             const re = new RegExp(search.replace(/\s+/g, '.*'), 'i');
             const matchingUsers = await User.find({
-                $or: [{ fullName: { $regex: re } }, { email: { $regex: re } }]
+                $or: [{ fullName: { $regex: re } }, { email: { $regex: re } }],
             })
                 .select('_id')
                 .lean()
@@ -70,45 +69,41 @@ export async function GET(req: NextRequest) {
         const sort: Record<string, 1 | -1> =
             sortKey === 'amount' ? { amount: sortDir === 'asc' ? 1 : -1 } : { createdAt: sortDir === 'asc' ? 1 : -1 };
 
-        const baseFind = Transaction.find(query)
-            .sort(sort)
-            .populate('userId', 'fullName email phone');
+        const baseFind = Transaction.find(query).sort(sort).populate('userId', 'fullName email phone');
 
-        const docs = (all === '1'
-            ? await baseFind.lean()
-            : await baseFind.skip((page - 1) * limit).limit(limit).lean()) as TxDoc[];
+        const docs =
+            all === '1'
+                ? await baseFind.lean()
+                : await baseFind.skip((page - 1) * limit).limit(limit).lean();
 
-        const transactions = docs.map((t) => ({
+        const transactions = (docs as TxDoc[]).map((t) => ({
             _id: String(t._id),
             amount: t.amount,
             type: t.type,
-            paymentMethod: t.paymentMethod,
             reference: t.reference,
             status: t.status,
             createdAt: t.createdAt,
             user: {
                 fullName: t.userId?.fullName ?? '',
                 email: t.userId?.email ?? '',
-                phone: t.userId?.phone ?? ''
-            }
+                phone: t.userId?.phone ?? '',
+            },
         }));
 
         const [total, sumAgg] = await Promise.all([
             Transaction.countDocuments(query),
             Transaction.aggregate<AggByStatus>([
                 { $match: query },
-                { $group: { _id: '$status', totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } }
-            ])
+                { $group: { _id: '$status', totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } },
+            ]),
         ]);
 
-        const byStatus: Partial<Record<TxStatus, AggByStatus>> = Object.fromEntries(
-            sumAgg.map((x) => [x._id, x])
-        );
+        const byStatus: Partial<Record<TxStatus, AggByStatus>> = Object.fromEntries(sumAgg.map((x) => [x._id, x]));
 
         const summary = {
             sumSuccess: byStatus.success?.totalAmount ?? 0,
             pending: byStatus.pending?.count ?? 0,
-            failed: byStatus.failed?.count ?? 0
+            failed: 0,
         };
 
         return NextResponse.json({
@@ -116,7 +111,7 @@ export async function GET(req: NextRequest) {
             total,
             page,
             pageSize: limit,
-            summary
+            summary,
         });
     } catch {
         return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 });

@@ -6,30 +6,18 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useNotifier } from '@/components/Notifier';
 
-type TxUser = {
-    fullName: string;
-    email: string;
-    phone: string;
-};
-
+type TxUser = { fullName: string; email: string; phone: string };
 type Transaction = {
     _id: string;
     user: TxUser;
     amount: number;
     type: 'initial' | 'balance';
     reference: string;
-    status: 'success' | 'failed' | 'pending';
+    status: 'success' | 'pending';
     createdAt: string;
 };
-
 type Summary = { sumSuccess: number; pending: number; failed: number };
-
-type TxApiResp = {
-    transactions: Transaction[];
-    summary: Summary;
-    total: number;
-    pageSize: number;
-};
+type TxApiResp = { transactions: Transaction[]; summary: Summary; total: number; pageSize: number };
 
 export default function TransactionsPage() {
     const { error } = useNotifier();
@@ -41,7 +29,7 @@ export default function TransactionsPage() {
 
     const [page, setPage] = useState(1);
     const [month, setMonth] = useState<'all' | string>('all');
-    const [status, setStatus] = useState<'all' | 'success' | 'pending' | 'failed'>('all');
+    const [status, setStatus] = useState<'all' | 'success' | 'pending'>('all');
     const [tType, setTType] = useState<'all' | 'initial' | 'balance'>('all');
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState<'date' | 'amount'>('date');
@@ -49,13 +37,8 @@ export default function TransactionsPage() {
     const [loading, setLoading] = useState(false);
 
     const months = useMemo((): { label: string; value: string }[] => {
-        const list = Array.from({ length: 12 }, (_, i) =>
-            new Date(0, i).toLocaleString('default', { month: 'long' })
-        );
-        return [
-            { label: 'All Months', value: 'all' },
-            ...list.map((label, i) => ({ label, value: String(i + 1) }))
-        ];
+        const list = Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString('default', { month: 'long' }));
+        return [{ label: 'All Months', value: 'all' }, ...list.map((label, i) => ({ label, value: String(i + 1) }))];
     }, []);
 
     const fetchTx = async () => {
@@ -71,7 +54,7 @@ export default function TransactionsPage() {
             if (month !== 'all') params.set('month', month);
 
             const { data } = await axios.get<TxApiResp>(`/api/admin/transaction?${params.toString()}`, {
-                headers: { 'cache-control': 'no-cache' }
+                headers: { 'cache-control': 'no-cache' },
             });
 
             setTransactions(data.transactions || []);
@@ -80,11 +63,8 @@ export default function TransactionsPage() {
             setPageSize(data.pageSize || 20);
         } catch (e: unknown) {
             let msg = 'Failed to fetch transactions';
-            if (axios.isAxiosError(e)) {
-                msg = (e.response?.data as { error?: string } | undefined)?.error || e.message || msg;
-            } else if (e instanceof Error) {
-                msg = e.message || msg;
-            }
+            if (axios.isAxiosError(e)) msg = (e.response?.data as { error?: string } | undefined)?.error || e.message || msg;
+            else if (e instanceof Error) msg = e.message || msg;
             setTransactions([]);
             setSummary({ sumSuccess: 0, pending: 0, failed: 0 });
             setTotal(0);
@@ -120,7 +100,7 @@ export default function TransactionsPage() {
             Type: t.type,
             Reference: t.reference,
             Status: t.status,
-            Date: new Date(t.createdAt).toLocaleString()
+            Date: new Date(t.createdAt).toLocaleString(),
         }));
 
         const ws = XLSX.utils.json_to_sheet(sheetData);
@@ -132,11 +112,7 @@ export default function TransactionsPage() {
     };
 
     const badge = (st: Transaction['status']) =>
-        st === 'success'
-            ? 'bg-green-100 text-green-700'
-            : st === 'pending'
-                ? 'bg-yellow-100 text-yellow-800'
-                : 'bg-red-100 text-red-700';
+        st === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800';
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -160,8 +136,8 @@ export default function TransactionsPage() {
                         <p className="text-2xl font-semibold mt-1">{summary.pending}</p>
                     </div>
                     <div className="bg-white border rounded-xl p-4 shadow-sm">
-                        <p className="text-gray-500 text-sm">Failed</p>
-                        <p className="text-2xl font-semibold mt-1">{summary.failed}</p>
+                        <p className="text-gray-500 text-sm">Total Records</p>
+                        <p className="text-2xl font-semibold mt-1">{total}</p>
                     </div>
                 </div>
 
@@ -202,7 +178,7 @@ export default function TransactionsPage() {
                         <select
                             value={status}
                             onChange={(e) => {
-                                setStatus(e.target.value as 'all' | 'success' | 'pending' | 'failed');
+                                setStatus(e.target.value as 'all' | 'success' | 'pending');
                                 setPage(1);
                             }}
                             className="input-field bg-white w-full"
@@ -210,7 +186,6 @@ export default function TransactionsPage() {
                             <option value="all">All</option>
                             <option value="success">Success</option>
                             <option value="pending">Pending</option>
-                            <option value="failed">Failed</option>
                         </select>
                     </div>
 
@@ -259,10 +234,7 @@ export default function TransactionsPage() {
                     </div>
 
                     <div className="w-full sm:col-start-2 md:col-start-3 lg:col-start-5 sm:flex sm:justify-end">
-                        <button
-                            onClick={exportToExcel}
-                            className="w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded-md"
-                        >
+                        <button onClick={exportToExcel} className="w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded-md">
                             Export to Excel
                         </button>
                     </div>
@@ -306,9 +278,9 @@ export default function TransactionsPage() {
                     </table>
                 </div>
 
-                {totalPages > 1 && (
+                {Math.max(1, Math.ceil(total / pageSize)) > 1 && (
                     <div className="mt-6 flex justify-center gap-2">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        {Array.from({ length: Math.max(1, Math.ceil(total / pageSize)) }, (_, i) => i + 1).map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPage(p)}
