@@ -11,11 +11,10 @@ type TrainingDuration = 4 | 8 | 12;
 type TrainingType = 'Electrical' | 'Plumbing' | 'Solar';
 
 const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
-    4: 400_000,
-    8: 800_000,
-    12: 1_100_000,
-};
-
+    4: 250_000,
+    8: 450_000,
+    12: 700_000
+}
 const WHATSAPP_E164 = process.env.WHATSAPP_E164 || '2348039375634';
 
 function fmtNaira(n: number) {

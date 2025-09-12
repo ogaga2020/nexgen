@@ -284,11 +284,30 @@ function UserDetailsModal({
     const { error, success } = useNotifier();
     const [busy, setBusy] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
+    const [full, setFull] = useState<User>(user);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                setLoading(true);
+                const { data } = await axios.get<{ user: User }>(`/api/admin/users/${user._id}`);
+                if (alive && data?.user) setFull(data.user);
+            } catch {
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+        return () => {
+            alive = false;
+        };
+    }, [user._id]);
 
     const verifyAndMarkPartial = async () => {
         try {
             setBusy(true);
-            await axios.patch(`/api/admin/users/${user._id}`, { verificationStatus: 'verified' });
+            await axios.patch(`/api/admin/users/${full._id}`, { verificationStatus: 'verified' });
             success('Student verified and marked as partially paid');
             onUpdated();
             onClose();
@@ -302,7 +321,7 @@ function UserDetailsModal({
     const markFullyPaid = async () => {
         try {
             setBusy(true);
-            await axios.patch(`/api/admin/users/${user._id}`, { markFullyPaid: true });
+            await axios.patch(`/api/admin/users/${full._id}`, { markFullyPaid: true });
             success('Student marked as fully paid');
             onUpdated();
             onClose();
@@ -317,7 +336,7 @@ function UserDetailsModal({
         if (!window.confirm('Delete this student?')) return;
         try {
             setBusy(true);
-            await axios.delete(`/api/admin/users/${user._id}`);
+            await axios.delete(`/api/admin/users/${full._id}`);
             success('Student deleted');
             onUpdated();
             onClose();
@@ -331,46 +350,58 @@ function UserDetailsModal({
     return (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
             <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg max-h-[90vh] overflow-y-auto p-6">
-                <h2 className="text-xl font-semibold text-[var(--primary)] mb-4">{user.fullName}&apos;s Details</h2>
+                <h2 className="text-xl font-semibold text-[var(--primary)] mb-4">
+                    {full.fullName}&apos;s Details
+                </h2>
 
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
                         <div>
-                            {user.photo ? (
-                                <img src={cdn(user.photo, 96, 96)} alt={user.fullName} className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
+                            {full.photo ? (
+                                <img
+                                    src={cdn(full.photo, 96, 96)}
+                                    alt={full.fullName}
+                                    className="w-24 h-24 rounded-md border object-cover"
+                                    referrerPolicy="no-referrer"
+                                />
                             ) : (
                                 <div className="w-24 h-24 rounded-md border bg-gray-100" />
                             )}
                         </div>
 
                         <div className="space-y-2">
-                            <p><strong>Email:</strong> {user.email}</p>
-                            <p><strong>Phone:</strong> {user.phone}</p>
-                            <p><strong>Training:</strong> {user.trainingType}</p>
-                            <p><strong>Duration:</strong> {user.trainingDuration} months</p>
+                            <p><strong>Email:</strong> {full.email}</p>
+                            <p><strong>Phone:</strong> {full.phone}</p>
+                            <p><strong>Training:</strong> {full.trainingType}</p>
+                            <p><strong>Duration:</strong> {full.trainingDuration} months</p>
                             <p className="flex items-center gap-2">
                                 <strong>Status:</strong>
-                                <span>{user.paymentStatus === 'fully_paid' ? 'Fully paid' : user.paymentStatus === 'partially_paid' ? 'Partially paid' : 'Unpaid'}</span>
+                                <span>{full.paymentStatus === 'fully_paid' ? 'Fully paid' : full.paymentStatus === 'partially_paid' ? 'Partially paid' : 'Unpaid'}</span>
                             </p>
                         </div>
                     </div>
 
-                    {user.guarantor && (
+                    {full.guarantor && (
                         <div className="border-t pt-4">
                             <h3 className="font-semibold mb-2">Guarantor Info</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
                                 <div>
-                                    {user.guarantor.photo ? (
-                                        <img src={cdn(user.guarantor.photo, 96, 96)} alt="Guarantor" className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
+                                    {full.guarantor.photo ? (
+                                        <img
+                                            src={cdn(full.guarantor.photo, 96, 96)}
+                                            alt="Guarantor"
+                                            className="w-24 h-24 rounded-md border object-cover"
+                                            referrerPolicy="no-referrer"
+                                        />
                                     ) : (
                                         <div className="w-24 h-24 rounded-md border bg-gray-100" />
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <p><strong>Name:</strong> {user.guarantor.fullName}</p>
-                                    <p><strong>Email:</strong> {user.guarantor.email}</p>
-                                    <p><strong>Phone:</strong> {user.guarantor.phone}</p>
+                                    <p><strong>Name:</strong> {full.guarantor.fullName}</p>
+                                    <p><strong>Email:</strong> {full.guarantor.email}</p>
+                                    <p><strong>Phone:</strong> {full.guarantor.phone}</p>
                                 </div>
                             </div>
                         </div>
@@ -378,28 +409,45 @@ function UserDetailsModal({
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-2 mt-6">
-                    {user.verificationStatus !== 'verified' && user.paymentStatus === 'not_paid' && (
-                        <button disabled={busy} onClick={verifyAndMarkPartial} className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-60">
-                            Verify & Mark Partial
-                        </button>
-                    )}
-                    {user.paymentStatus === 'partially_paid' && (
-                        <button disabled={busy} onClick={markFullyPaid} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60">
-                            Mark Fully Paid
-                        </button>
-                    )}
-                    <button onClick={() => setEditOpen(true)} className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">
-                        Edit
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400">
+                        Close
                     </button>
-                    <button onClick={handleDelete} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60" disabled={busy}>
-                        Delete
-                    </button>
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400">Close</button>
+
+                    <div className="md:hidden flex flex-wrap items-center gap-2">
+                        {full.verificationStatus !== 'verified' && full.paymentStatus === 'not_paid' && (
+                            <button
+                                disabled={busy}
+                                onClick={verifyAndMarkPartial}
+                                className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                                Verify & Mark Partial
+                            </button>
+                        )}
+                        {full.paymentStatus === 'partially_paid' && (
+                            <button
+                                disabled={busy}
+                                onClick={markFullyPaid}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60"
+                            >
+                                Mark Fully Paid
+                            </button>
+                        )}
+                        <button onClick={() => setEditOpen(true)} className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">
+                            Edit
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                            disabled={busy}
+                        >
+                            Delete
+                        </button>
+                    </div>
                 </div>
 
                 {editOpen && (
                     <EditUserModal
-                        user={user}
+                        user={full}
                         onClose={() => setEditOpen(false)}
                         onSaved={() => {
                             setEditOpen(false);

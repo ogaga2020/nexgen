@@ -7,10 +7,10 @@ export const runtime = 'nodejs';
 
 type TrainingDuration = 4 | 8 | 12;
 const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
-  4: 400_000,
-  8: 800_000,
-  12: 1_100_000,
-};
+  4: 250_000,
+  8: 450_000,
+  12: 700_000
+}
 
 export async function GET(_: Request, { params }: { params: { userId: string } }) {
   try {
