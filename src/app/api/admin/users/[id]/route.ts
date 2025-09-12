@@ -4,7 +4,7 @@ import User from '@/models/User';
 import Transaction from '@/models/Transaction';
 import logger from '@/lib/logger';
 import { sendMail } from '@/lib/email';
-import { EMAIL_SUBJECTS } from '@/utils/constants';
+import { EMAIL_SUBJECTS, ADMIN_EMAILS_TO } from '@/utils/constants';
 import { welcomeAfterVerificationTemplate, paymentRecordedTemplate } from '@/lib/templates';
 
 export const runtime = 'nodejs';
@@ -63,12 +63,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                 updates.startDate = startDate;
                 updates.dueDate = dueDate;
 
-                const flip = await Transaction.updateMany(
+                await Transaction.updateMany(
                     { userId: user._id, type: 'initial', status: 'pending' },
                     { $set: { status: 'success' } }
                 );
-
-                logger.info({ route: '/api/admin/users/[id]', phase: 'verify_flip_tx', id, flipped: flip.modifiedCount });
 
                 const startStr = startDate.toLocaleDateString();
                 const dueStr = dueDate.toLocaleDateString();
@@ -86,13 +84,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                 });
 
                 await sendMail({
-                    to: user.email,
+                    to: ADMIN_EMAILS_TO,
                     subject: EMAIL_SUBJECTS.PAYMENT_RECORDED,
                     html: paymentRecordedTemplate(
                         user.fullName,
                         Math.round(TUITION_BY_DURATION[user.trainingDuration] * 0.6),
                         user.trainingType,
-                        'Initial'
+                        'Initial',
+                        'admin'
                     ),
                 });
             }
@@ -102,30 +101,42 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             updates.paymentStatus = 'fully_paid';
 
             const tuition = TUITION_BY_DURATION[user.trainingDuration];
-            const balanceAmount = tuition - Math.round(tuition * 0.6);
 
-            await Transaction.updateMany(
-                { userId: user._id, type: 'initial', status: 'pending' },
-                { $set: { status: 'success' } }
-            );
+            const initialTx = await Transaction.findOne({ userId: user._id, type: 'initial' }).sort({ createdAt: 1 });
 
-            const existingBalance = await Transaction.findOne({ userId: user._id, type: 'balance' }).sort({ createdAt: -1 });
-
-            if (!existingBalance) {
-                await Transaction.create({
-                    userId: user._id,
-                    amount: balanceAmount,
-                    type: 'balance',
-                    reference: `BAL-${Date.now()}`,
-                    status: 'success',
-                });
-            } else if (existingBalance.status === 'pending') {
-                existingBalance.status = 'success';
-                if (!existingBalance.amount || existingBalance.amount !== balanceAmount) {
-                    existingBalance.amount = balanceAmount;
+            if (initialTx) {
+                initialTx.type = 'balance';
+                initialTx.amount = tuition;
+                initialTx.status = 'success';
+                await initialTx.save();
+            } else {
+                const existingBalance = await Transaction.findOne({ userId: user._id, type: 'balance' }).sort({ createdAt: -1 });
+                if (existingBalance) {
+                    existingBalance.amount = tuition;
+                    existingBalance.status = 'success';
+                    await existingBalance.save();
+                } else {
+                    await Transaction.create({
+                        userId: user._id,
+                        amount: tuition,
+                        type: 'balance',
+                        reference: `BAL-${Date.now()}`,
+                        status: 'success',
+                    });
                 }
-                await existingBalance.save();
             }
+
+            await sendMail({
+                to: ADMIN_EMAILS_TO,
+                subject: EMAIL_SUBJECTS.PAYMENT_RECORDED,
+                html: paymentRecordedTemplate(
+                    user.fullName,
+                    tuition,
+                    user.trainingType,
+                    'Balance',
+                    'admin'
+                ),
+            });
         }
 
         if (Object.keys(updates).length === 0) {
@@ -133,13 +144,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         }
 
         const updated = await User.findByIdAndUpdate(id, updates, { new: true });
-        logger.info({ route: '/api/admin/users/[id]', phase: 'patched', id, updates });
 
         if (updates.paymentStatus === 'fully_paid') {
             const { fullyPaidCongratulationsTemplate } = await import('@/lib/templates');
             await sendMail({
                 to: (updated?.email as string) || user.email,
-                subject: 'Congratulations! You are fully paid',
+                subject: EMAIL_SUBJECTS.FULLY_PAID_CONGRATS,
                 html: fullyPaidCongratulationsTemplate(
                     updated?.fullName || user.fullName,
                     updated?.trainingType || user.trainingType

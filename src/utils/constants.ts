@@ -17,6 +17,12 @@ export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || '';
 
 export const COMPANY_LOGO = `${BASE_URL}/logo.png`;
 
-export const MAIN_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@nexgen.com';
+const ADMIN_LIST = (process.env.ADMIN_EMAIL || '')
+    .split(',')
+    .map(s => s.replace(/["\s]/g, ''))
+    .filter(Boolean);
+
+export const MAIN_ADMIN_EMAIL = ADMIN_LIST[0] || 'admin@nexgen.com';
+export const ADMIN_EMAILS_TO = ADMIN_LIST.join(',');
 
 export const EMAIL_FROM_NAME = 'NexGen Flow and Power';

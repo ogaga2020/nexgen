@@ -15,20 +15,21 @@ export async function sendMail({
     subject,
     html,
 }: {
-    to: string;
+    to: string | string[];
     subject: string;
     html: string;
 }) {
+    const toField = Array.isArray(to) ? to.join(",") : to;
     try {
         await transporter.sendMail({
             from: `"${EMAIL_FROM_NAME}" <${MAIN_ADMIN_EMAIL}>`,
-            to,
+            to: toField,
             subject,
             html,
         });
-        logger.info({ route: "lib/email.sendMail", to, subject, ok: true });
+        logger.info({ route: "lib/email.sendMail", to: toField, subject, ok: true });
     } catch (error: any) {
-        logger.error({ route: "lib/email.sendMail", to, subject, error: error?.message });
+        logger.error({ route: "lib/email.sendMail", to: toField, subject, error: error?.message });
         throw new Error("Failed to send email");
     }
 }
