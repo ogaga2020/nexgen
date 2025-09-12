@@ -22,6 +22,11 @@ type User = {
 
 const ITEMS_PER_PAGE = 20;
 
+const cdn = (url?: string, w = 96, h = 96) =>
+    url && url.includes('/upload/')
+        ? url.replace('/upload/', `/upload/f_auto,q_auto,c_fill,w_${w},h_${h}/`)
+        : url || '';
+
 export default function StudentsPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -204,6 +209,7 @@ export default function StudentsPage() {
                                     <td className="px-5 py-3 text-right whitespace-nowrap">
                                         <span className="inline-flex items-center gap-3">
                                             <button onClick={() => setSelectedUser(user)} className="text-blue-600 hover:underline">View</button>
+                                            <EditUserModalTrigger user={user} onSaved={() => fetchUsers(currentPage, filter, search)} />
                                             <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:underline">Delete</button>
                                         </span>
                                     </td>
@@ -287,7 +293,14 @@ function UserDetailsModal({
                 <h2 className="text-xl font-semibold text-[var(--primary)] mb-4">{user.fullName}&apos;s Details</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
-                    <div>{user.photo ? <img src={user.photo} alt={user.fullName} className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" /> : <div className="w-24 h-24 rounded-md border bg-gray-100" />}</div>
+                    <div>
+                        {user.photo ? (
+                            <img src={cdn(user.photo, 96, 96)} alt={user.fullName} className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                            <div className="w-24 h-24 rounded-md border bg-gray-100" />
+                        )}
+                    </div>
+
                     <div className="space-y-2">
                         <p><strong>Email:</strong> {user.email}</p>
                         <p><strong>Phone:</strong> {user.phone}</p>
@@ -304,7 +317,14 @@ function UserDetailsModal({
                     <div className="mt-6 border-t pt-4">
                         <h3 className="font-semibold mb-2">Guarantor Info</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start">
-                            <div>{user.guarantor.photo ? <img src={user.guarantor.photo} alt="Guarantor" className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" /> : <div className="w-24 h-24 rounded-md border bg-gray-100" />}</div>
+                            <div>
+                                {user.guarantor?.photo ? (
+                                    <img src={cdn(user.guarantor.photo, 96, 96)} alt="Guarantor" className="w-24 h-24 rounded-md border object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                    <div className="w-24 h-24 rounded-md border bg-gray-100" />
+                                )}
+                            </div>
+
                             <div className="space-y-2">
                                 <p><strong>Name:</strong> {user.guarantor.fullName}</p>
                                 <p><strong>Email:</strong> {user.guarantor.email}</p>
@@ -326,6 +346,226 @@ function UserDetailsModal({
                         </button>
                     )}
                     <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400">Close</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function EditUserModalTrigger({ user, onSaved }: { user: User; onSaved: () => void }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <>
+            <button onClick={() => setOpen(true)} className="text-indigo-600 hover:underline">Edit</button>
+            {open && <EditUserModal user={user} onClose={() => setOpen(false)} onSaved={onSaved} />}
+        </>
+    );
+}
+
+function EditUserModal({ user, onClose, onSaved }: { user: User; onClose: () => void; onSaved: () => void }) {
+    const { error, success } = useNotifier();
+    const [busy, setBusy] = useState(false);
+
+    const [form, setForm] = useState({
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        photo: user.photo || '',
+        trainingType: user.trainingType,
+        trainingDuration: user.trainingDuration,
+        guarantor: {
+            fullName: user.guarantor?.fullName || '',
+            email: user.guarantor?.email || '',
+            phone: user.guarantor?.phone || '',
+            photo: user.guarantor?.photo || '',
+        },
+    });
+
+    const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string | undefined;
+    const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET as string | undefined;
+
+    const cdn = (url?: string, w = 160, h = 160) =>
+        url && url.includes('/upload/')
+            ? url.replace('/upload/', `/upload/f_auto,q_auto,c_fill,w_${w},h_${h}/`)
+            : url || '';
+
+    const upload = async (file: File, cb: (url: string) => void) => {
+        if (!CLOUD || !PRESET) {
+            error('Cloudinary not configured');
+            return;
+        }
+        if (file.size > 3 * 1024 * 1024) {
+            error('Image too large (max 3MB)');
+            return;
+        }
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('upload_preset', PRESET);
+        fd.append('folder', 'nextgen/passport');
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, { method: 'POST', body: fd });
+        const json = await res.json();
+        if (!res.ok || !json.secure_url) {
+            error(json?.error?.message || 'Upload failed');
+            return;
+        }
+        cb(json.secure_url as string);
+    };
+
+    const save = async () => {
+        try {
+            setBusy(true);
+            await axios.patch(`/api/admin/users/${user._id}`, form);
+            success('Student updated');
+            onSaved();
+            onClose();
+        } catch (e: any) {
+            error(e?.response?.data || e?.message || 'Failed to update');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="relative w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-xl">
+                <div className="sticky top-0 z-10 border-b bg-white/90 px-6 py-4 backdrop-blur">
+                    <h2 className="text-xl font-semibold text-[var(--primary)]">Edit Student</h2>
+                </div>
+
+                <div className="max-h-[75vh] overflow-y-auto px-6 py-5">
+                    <section className="grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr]">
+                        <div className="space-y-3">
+                            <div className="aspect-square w-[200px] overflow-hidden rounded-xl border bg-gray-50">
+                                {form.photo ? (
+                                    <img src={cdn(form.photo, 200, 200)} alt="Student" className="h-full w-full object-cover" />
+                                ) : null}
+                            </div>
+
+                            <label className="block">
+                                <span className="mb-1 block text-sm font-medium text-gray-700">Student Photo</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) =>
+                                        e.target.files &&
+                                        upload(e.target.files[0], (u) => setForm((f) => ({ ...f, photo: u })))
+                                    }
+                                    className="block w-full cursor-pointer rounded-md border bg-white p-2 text-sm"
+                                />
+                                <span className="mt-1 block text-xs text-gray-500">Max 3MB. JPG/PNG.</span>
+                            </label>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="md:col-span-2">
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Full Name</label>
+                                <input
+                                    className="input-field w-full"
+                                    value={form.fullName}
+                                    onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                                <input
+                                    className="input-field w-full"
+                                    value={form.email}
+                                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Phone</label>
+                                <input
+                                    className="input-field w-full"
+                                    value={form.phone}
+                                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Training Type</label>
+                                <input className="input-field w-full bg-gray-100" value={form.trainingType} disabled />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Duration (months)</label>
+                                <input className="input-field w-full bg-gray-100" value={form.trainingDuration} disabled />
+                            </div>
+                        </div>
+                    </section>
+
+                    <div className="my-8 h-px w-full bg-gray-200" />
+
+                    <section>
+                        <h3 className="mb-4 text-base font-semibold text-gray-800">Guarantor</h3>
+
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr]">
+                            <div className="space-y-3">
+                                <div className="aspect-square w-[200px] overflow-hidden rounded-xl border bg-gray-50">
+                                    {form.guarantor.photo ? (
+                                        <img src={cdn(form.guarantor.photo, 200, 200)} alt="Guarantor" className="h-full w-full object-cover" />
+                                    ) : null}
+                                </div>
+
+                                <label className="block">
+                                    <span className="mb-1 block text-sm font-medium text-gray-700">Guarantor Photo</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                            e.target.files &&
+                                            upload(e.target.files[0], (u) =>
+                                                setForm((f) => ({ ...f, guarantor: { ...f.guarantor, photo: u } }))
+                                            )
+                                        }
+                                        className="block w-full cursor-pointer rounded-md border bg-white p-2 text-sm"
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="md:col-span-2">
+                                    <label className="mb-1 block text-sm font-medium text-gray-700">Full Name</label>
+                                    <input
+                                        className="input-field w-full"
+                                        value={form.guarantor.fullName}
+                                        onChange={(e) => setForm({ ...form, guarantor: { ...form.guarantor, fullName: e.target.value } })}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                                    <input
+                                        className="input-field w-full"
+                                        value={form.guarantor.email}
+                                        onChange={(e) => setForm({ ...form, guarantor: { ...form.guarantor, email: e.target.value } })}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700">Phone</label>
+                                    <input
+                                        className="input-field w-full"
+                                        value={form.guarantor.phone}
+                                        onChange={(e) => setForm({ ...form, guarantor: { ...form.guarantor, phone: e.target.value } })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t bg-white/90 px-6 py-4 backdrop-blur">
+                    <button onClick={onClose} className="rounded-md bg-gray-200 px-4 py-2 hover:bg-gray-300">Cancel</button>
+                    <button
+                        disabled={busy}
+                        onClick={save}
+                        className="rounded-md bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+                    >
+                        Save
+                    </button>
                 </div>
             </div>
         </div>
