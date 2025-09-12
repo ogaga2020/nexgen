@@ -27,7 +27,7 @@ type TxDoc = {
     reference: string;
     status: TxStatus;
     createdAt: Date;
-    userId?: { fullName?: string; email?: string; phone?: string } | null;
+    userId?: { _id?: unknown; fullName?: string; email?: string; phone?: string } | null;
 };
 
 type AggByStatus = { _id: TxStatus; totalAmount: number; count: number };
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         const { page, all, status, type, search, month, sortKey, sortDir } = parsed.data;
         const limit = 20;
 
-        const query: Record<string, unknown> = {};
+        const query: Record<string, any> = {};
         if (status) query.status = status;
         if (type) query.type = type;
 
@@ -78,15 +78,16 @@ export async function GET(req: NextRequest) {
 
         const transactions = (docs as TxDoc[]).map((t) => ({
             _id: String(t._id),
+            userId: String((t.userId as any)?._id ?? t.userId),
             amount: t.amount,
             type: t.type,
             reference: t.reference,
             status: t.status,
             createdAt: t.createdAt,
             user: {
-                fullName: t.userId?.fullName ?? '',
-                email: t.userId?.email ?? '',
-                phone: t.userId?.phone ?? '',
+                fullName: (t.userId as any)?.fullName ?? '',
+                email: (t.userId as any)?.email ?? '',
+                phone: (t.userId as any)?.phone ?? '',
             },
         }));
 
@@ -100,9 +101,27 @@ export async function GET(req: NextRequest) {
 
         const byStatus: Partial<Record<TxStatus, AggByStatus>> = Object.fromEntries(sumAgg.map((x) => [x._id, x]));
 
+        const pendingInitialQuery: Record<string, any> = { status: 'pending', type: 'initial' };
+        if (month && month !== 'all') {
+            const m = Number(month);
+            pendingInitialQuery.$expr = { $eq: [{ $month: '$createdAt' }, m] };
+        }
+        if (search && search.trim()) {
+            const re = new RegExp(search.replace(/\s+/g, '.*'), 'i');
+            const matchingUsers = await User.find({
+                $or: [{ fullName: { $regex: re } }, { email: { $regex: re } }],
+            })
+                .select('_id')
+                .lean()
+                .exec();
+            const userIds = matchingUsers.map((u) => u._id);
+            pendingInitialQuery.$or = [{ userId: { $in: userIds } }, { reference: { $regex: re } }];
+        }
+        const pendingInitial = await Transaction.countDocuments(pendingInitialQuery);
+
         const summary = {
             sumSuccess: byStatus.success?.totalAmount ?? 0,
-            pending: byStatus.pending?.count ?? 0,
+            pending: pendingInitial,
             failed: 0,
         };
 

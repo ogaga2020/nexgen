@@ -9,6 +9,7 @@ import { useNotifier } from '@/components/Notifier';
 type TxUser = { fullName: string; email: string; phone: string };
 type Transaction = {
     _id: string;
+    userId: string;
     user: TxUser;
     amount: number;
     type: 'initial' | 'balance';
@@ -18,6 +19,24 @@ type Transaction = {
 };
 type Summary = { sumSuccess: number; pending: number; failed: number };
 type TxApiResp = { transactions: Transaction[]; summary: Summary; total: number; pageSize: number };
+
+type Audit = {
+    user: {
+        id: string;
+        fullName: string;
+        email: string;
+        phone: string;
+        trainingType: 'Electrical' | 'Plumbing' | 'Solar';
+        trainingDuration: 4 | 8 | 12;
+        paymentStatus: 'not_paid' | 'partially_paid' | 'fully_paid';
+        tuition: number;
+        expectedInitial: number;
+        expectedBalance: number;
+        paidTotal: number;
+    };
+    initial: null | { amount: number; expected: number; status: 'pending' | 'success'; reference: string; date: string };
+    balance: null | { amount: number; expected: number; status: 'pending' | 'success'; reference: string; date: string };
+};
 
 export default function TransactionsPage() {
     const { error } = useNotifier();
@@ -35,6 +54,10 @@ export default function TransactionsPage() {
     const [sortKey, setSortKey] = useState<'date' | 'amount'>('date');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const [loading, setLoading] = useState(false);
+
+    const [auditOpen, setAuditOpen] = useState(false);
+    const [auditLoading, setAuditLoading] = useState(false);
+    const [audit, setAudit] = useState<Audit | null>(null);
 
     const months = useMemo((): { label: string; value: string }[] => {
         const list = Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString('default', { month: 'long' }));
@@ -76,9 +99,15 @@ export default function TransactionsPage() {
 
     useEffect(() => {
         fetchTx();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, month, status, tType, search, sortKey, sortDir]);
 
+    useEffect(() => {
+        if (auditOpen) document.body.style.overflow = 'hidden'
+        else document.body.style.overflow = ''
+        return () => {
+            document.body.style.overflow = ''
+        }
+    }, [auditOpen])
     const exportToExcel = async () => {
         const params = new URLSearchParams();
         params.set('all', '1');
@@ -115,6 +144,17 @@ export default function TransactionsPage() {
         st === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800';
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    const openAudit = async (userId: string) => {
+        setAuditOpen(true)
+        setAuditLoading(true)
+        try {
+            const { data } = await axios.get<Audit>(`/api/admin/transaction/audit/${userId}`)
+            setAudit(data)
+        } finally {
+            setAuditLoading(false)
+        }
+    }
 
     return (
         <>
@@ -234,7 +274,10 @@ export default function TransactionsPage() {
                     </div>
 
                     <div className="w-full sm:col-start-2 md:col-start-3 lg:col-start-5 sm:flex sm:justify-end">
-                        <button onClick={exportToExcel} className="w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded-md">
+                        <button
+                            onClick={exportToExcel}
+                            className="w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded-md"
+                        >
                             Export to Excel
                         </button>
                     </div>
@@ -251,6 +294,7 @@ export default function TransactionsPage() {
                                 <th className="px-4 py-3">Status</th>
                                 <th className="px-4 py-3">Reference</th>
                                 <th className="px-4 py-3">Date</th>
+                                <th className="px-4 py-3">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -265,11 +309,19 @@ export default function TransactionsPage() {
                                     </td>
                                     <td className="px-4 py-2">{t.reference}</td>
                                     <td className="px-4 py-2">{new Date(t.createdAt).toLocaleString()}</td>
+                                    <td className="px-4 py-2">
+                                        <button
+                                            onClick={() => openAudit(t.userId)}
+                                            className="px-3 py-1 rounded bg-gray-800 text-white hover:opacity-90"
+                                        >
+                                            View
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                             {transactions.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
+                                    <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
                                         {loading ? 'Loading…' : 'No transactions found.'}
                                     </td>
                                 </tr>
@@ -293,6 +345,71 @@ export default function TransactionsPage() {
                     </div>
                 )}
             </div>
+
+            {auditOpen && (
+                <div className="fixed inset-0 z-50">
+                    <div className="absolute inset-0 bg-black/50" />
+                    <div className="fixed inset-0 flex items-center justify-center p-4">
+                        <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl">
+                            <div className="flex items-center justify-between p-4 border-b">
+                                <h3 className="text-lg font-semibold">Payment Audit</h3>
+                                <button onClick={() => setAuditOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                            </div>
+                            <div className="px-4 pb-4">
+                                <div className="max-h-[70vh] overflow-y-auto pr-1">
+                                    {auditLoading && <p>Loading…</p>}
+                                    {!auditLoading && audit && (
+                                        <div className="space-y-4">
+                                            <div className="grid sm:grid-cols-2 gap-2 text-sm">
+                                                <div><span className="text-gray-500">Name:</span> {audit.user.fullName}</div>
+                                                <div><span className="text-gray-500">Email:</span> {audit.user.email}</div>
+                                                <div><span className="text-gray-500">Program:</span> {audit.user.trainingType} ({audit.user.trainingDuration} months)</div>
+                                                <div><span className="text-gray-500">Payment Status:</span> {audit.user.paymentStatus.replace('_', ' ')}</div>
+                                                <div><span className="text-gray-500">Tuition:</span> ₦{audit.user.tuition.toLocaleString()}</div>
+                                                <div><span className="text-gray-500">Paid Total:</span> ₦{audit.user.paidTotal.toLocaleString()}</div>
+                                            </div>
+
+                                            <div className="border rounded-lg">
+                                                <div className="p-3 border-b font-medium bg-gray-50">Initial (60%)</div>
+                                                <div className="p-3 text-sm grid sm:grid-cols-2 gap-2">
+                                                    <div><span className="text-gray-500">Expected:</span> ₦{(audit.initial?.expected ?? 0).toLocaleString()}</div>
+                                                    <div><span className="text-gray-500">Amount:</span> {audit.initial ? `₦${audit.initial.amount.toLocaleString()}` : '-'}</div>
+                                                    <div><span className="text-gray-500">Status:</span> {audit.initial?.status ?? '-'}</div>
+                                                    <div><span className="text-gray-500">Reference:</span> {audit.initial?.reference ?? '-'}</div>
+                                                    <div className="sm:col-span-2"><span className="text-gray-500">Date:</span> {audit.initial?.date ? new Date(audit.initial.date).toLocaleString() : '-'}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="border rounded-lg">
+                                                <div className="p-3 border-b font-medium bg-gray-50">Balance (40%)</div>
+                                                <div className="p-3 text-sm grid sm:grid-cols-2 gap-2">
+                                                    <div><span className="text-gray-500">Expected:</span> ₦{(audit.balance?.expected ?? (audit.user.tuition - (audit.initial?.expected ?? 0))).toLocaleString()}</div>
+                                                    <div><span className="text-gray-500">Amount:</span> {audit.balance ? `₦${audit.balance.amount.toLocaleString()}` : '-'}</div>
+                                                    <div><span className="text-gray-500">Status:</span> {audit.balance?.status ?? '-'}</div>
+                                                    <div><span className="text-gray-500">Reference:</span> {audit.balance?.reference ?? '-'}</div>
+                                                    <div className="sm:col-span-2"><span className="text-gray-500">Date:</span> {audit.balance?.date ? new Date(audit.balance.date).toLocaleString() : '-'}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-sm text-gray-600">
+                                                <strong>Snapshot:</strong>{' '}
+                                                {audit.initial?.status !== 'success'
+                                                    ? 'Initial payment pending (60%)'
+                                                    : audit.balance?.status !== 'success'
+                                                        ? 'Balance pending (40%)'
+                                                        : 'Fully paid (100%)'}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="p-4 border-t flex justify-end">
+                                <button onClick={() => setAuditOpen(false)} className="px-4 py-2 rounded bg-gray-800 text-white">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

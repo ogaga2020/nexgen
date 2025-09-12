@@ -104,16 +104,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             const tuition = TUITION_BY_DURATION[user.trainingDuration];
             const balanceAmount = tuition - Math.round(tuition * 0.6);
 
-            const pendingBalance = await Transaction.findOne({
-                userId: user._id,
-                type: 'balance',
-                status: 'pending',
-            });
+            await Transaction.updateMany(
+                { userId: user._id, type: 'initial', status: 'pending' },
+                { $set: { status: 'success' } }
+            );
 
-            if (pendingBalance) {
-                pendingBalance.status = 'success';
-                await pendingBalance.save();
-            } else {
+            const existingBalance = await Transaction.findOne({ userId: user._id, type: 'balance' }).sort({ createdAt: -1 });
+
+            if (!existingBalance) {
                 await Transaction.create({
                     userId: user._id,
                     amount: balanceAmount,
@@ -121,6 +119,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                     reference: `BAL-${Date.now()}`,
                     status: 'success',
                 });
+            } else if (existingBalance.status === 'pending') {
+                existingBalance.status = 'success';
+                if (!existingBalance.amount || existingBalance.amount !== balanceAmount) {
+                    existingBalance.amount = balanceAmount;
+                }
+                await existingBalance.save();
             }
         }
 

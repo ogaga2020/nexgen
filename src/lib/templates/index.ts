@@ -70,7 +70,7 @@ export const welcomeAfterVerificationTemplate = (
   balanceDueStr: string
 ) =>
   wrap(`
-    <h2 style="color:#065f46; margin:0 0 12px;">Welcome to ${program}</h2>
+    <h2 style="color:#065f46; margin:0 0 12px;">Welcome to NexGen</h2>
     <p style="margin:0 0 10px;">Hello ${name}, your registration has been verified and your training is confirmed.</p>
     <div style="margin:14px 0; padding:12px; background:#ecfeff; border:1px solid #bae6fd; border-radius:8px;">
       <p style="margin:0; line-height:1.7;">
