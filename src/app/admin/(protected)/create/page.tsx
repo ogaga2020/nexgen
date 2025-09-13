@@ -160,7 +160,7 @@ export default function CreateAdminPage() {
                                     {showPw ? 'Hide' : 'Show'}
                                 </button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">The new admin can change their password after logging in.</p>
+                            <p className="text-xs text-gray-500 mt-1">The new admin can change their password using the forget password.</p>
                         </div>
                     </div>
 
