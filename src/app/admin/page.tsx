@@ -32,11 +32,11 @@ export default function AdminEntryPage() {
         setLoading(true);
         try {
             await axios.post('/api/admin/create', form);
-            toast.success('Admin created! You can now log in.');
+            toast.success('Admin created! You can now log in.', { duration: 3000 });
             setShowCreate(false);
             setForm((p) => ({ ...p, fullName: '', phone: '' }));
         } catch (err: any) {
-            toast.error(err.response?.data?.error || 'Error creating admin');
+            toast.error(err?.response?.data?.error || 'Error creating admin', { duration: 5000 });
         } finally {
             setLoading(false);
         }
@@ -49,10 +49,10 @@ export default function AdminEntryPage() {
                 email: form.email,
                 password: form.password,
             });
-            toast.success('Login successful!');
+            toast.success('Login successful!', { duration: 3000 });
             router.push('/admin/dashboard');
         } catch (err: any) {
-            toast.error(err.response?.data?.error || 'Login failed');
+            toast.error(err?.response?.data?.error || 'Login failed', { duration: 5000 });
         } finally {
             setLoading(false);
         }
