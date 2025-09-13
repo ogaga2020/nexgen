@@ -47,7 +47,7 @@ const wrapThemed = (content: string, role: Role = "user") => {
       <img src="${COMPANY_LOGO}" alt="${APP_NAME}" width="120" style="display:inline-block;"/>
     </div>
     ${content}
-    <p style="margin-top:28px;font-size:12px;color:${role === 'admin' ? '#9fb4d9' : '#64748b'};text-align:center;">${APP_NAME}</p>
+    <p style="margin-top:28px;font-size:12px;color:${role === 'admin' ? THEMES.admin.accent : '#64748b'};text-align:center;">${APP_NAME}</p>
   </div>
 `;
 };
@@ -82,13 +82,14 @@ export const sendOtpTemplate = (otp: string) =>
       <span style="font-size:28px;letter-spacing:4px;font-weight:700;color:${THEMES.admin.accent};">${otp}</span>
     </div>
     <p style="margin:0;">This code expires in <strong>10 minutes</strong>.</p>
-  `, "user");
+  `, "admin");
 
 export const resetSuccessTemplate = () =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Password Reset Successful</h2>
     <p style="margin:0 0 10px;">You can now sign in with your new password.</p>
     <div style="margin-top:16px;">${btn(`${BASE_URL}/admin`, "Sign In", "admin")}</div>
+    <p style="margin-top:16px;font-size:12px;color:#64748b;">If you did not perform this action, please contact support immediately.</p>
   `, "admin");
 
 export const paymentRecordedTemplate = (

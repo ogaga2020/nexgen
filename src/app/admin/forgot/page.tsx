@@ -12,7 +12,6 @@ export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false);
     const [cooldown, setCooldown] = useState(0);
     const router = useRouter();
-
     const LOGO_URL = 'https://branition.com/assets/img/users/logos/4741-iHZXCVg.webp';
 
     useEffect(() => {
@@ -25,7 +24,7 @@ export default function ForgotPasswordPage() {
         if (!email) return toast.error('Enter your admin email');
         setLoading(true);
         try {
-            await axios.post('/api/admin/forgot', { email });
+            await axios.post('/api/admin/forgot', { email: email.trim().toLowerCase() });
             toast.success('A verification code has been sent to your email.');
             setStep('verify');
             setCooldown(45);
@@ -39,7 +38,7 @@ export default function ForgotPasswordPage() {
     const handleResend = async () => {
         if (cooldown) return;
         try {
-            await axios.post('/api/admin/forgot', { email });
+            await axios.post('/api/admin/forgot', { email: email.trim().toLowerCase() });
             toast.success('Code resent');
             setCooldown(45);
         } catch (err: any) {
@@ -51,9 +50,9 @@ export default function ForgotPasswordPage() {
         if (otp.trim().length < 4) return toast.error('Enter the code we sent');
         setLoading(true);
         try {
-            await axios.post('/api/admin/verify-otp', { email, otp: otp.trim() });
-            toast.success('Verified. You can now log in.');
-            router.push('/admin');
+            await axios.post('/api/admin/verify-otp', { email: email.trim().toLowerCase(), otp: otp.trim() });
+            toast.success('Verified. Continue to set a new password.');
+            router.push(`/admin/reset?email=${encodeURIComponent(email.trim().toLowerCase())}`);
         } catch (err: any) {
             toast.error(err.response?.data?.error || 'Invalid code');
         } finally {
@@ -64,14 +63,6 @@ export default function ForgotPasswordPage() {
     return (
         <>
             <section className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white py-12 px-6 text-center">
-                <button onClick={() => router.push('/admin')} className="inline-flex items-center justify-center">
-                    <img
-                        src={LOGO_URL}
-                        alt="NexGen Logo"
-                        className="w-[75px] h-auto rounded-full shadow-lg"
-                        loading="lazy"
-                    />
-                </button>
                 <h1 className="text-3xl md:text-4xl font-bold mt-4">Forgot Password</h1>
                 <p className="opacity-90">
                     {step === 'request'
@@ -101,10 +92,7 @@ export default function ForgotPasswordPage() {
                                 {loading ? 'Sending…' : 'Send Verification Code'}
                             </button>
                             <div className="text-center mt-4">
-                                <button
-                                    onClick={() => router.push('/admin')}
-                                    className="text-[var(--accent)] hover:underline"
-                                >
+                                <button onClick={() => router.push('/admin')} className="text-[var(--accent)] hover:underline">
                                     Back to login
                                 </button>
                             </div>
@@ -113,7 +101,7 @@ export default function ForgotPasswordPage() {
                         <>
                             <div className="mb-6">
                                 <p className="text-sm text-gray-600">
-                                    We sent a code to <span className="font-medium">{email}</span>
+                                    We sent a code to <span className="font-medium">{email.trim().toLowerCase()}</span>
                                 </p>
                             </div>
 
@@ -138,17 +126,13 @@ export default function ForgotPasswordPage() {
                             </button>
 
                             <div className="mt-4 flex items-center justify-between text-sm">
-                                <button
-                                    onClick={() => setStep('request')}
-                                    className="text-[var(--accent)] hover:underline"
-                                >
+                                <button onClick={() => setStep('request')} className="text-[var(--accent)] hover:underline">
                                     Use a different email
                                 </button>
                                 <button
                                     onClick={handleResend}
                                     disabled={!!cooldown}
-                                    className={`${cooldown ? 'opacity-60 cursor-not-allowed' : 'text-[var(--accent)] hover:underline'
-                                        }`}
+                                    className={`${cooldown ? 'opacity-60 cursor-not-allowed' : 'text-[var(--accent)] hover:underline'}`}
                                 >
                                     {cooldown ? `Resend in ${cooldown}s` : 'Resend code'}
                                 </button>

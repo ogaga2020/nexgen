@@ -11,6 +11,10 @@ export interface IAdmin extends Document {
         code: string;
         expires: Date;
     };
+    resetToken?: {
+        token: string;
+        expires: Date;
+    };
 }
 
 const AdminSchema = new Schema<IAdmin>(
@@ -23,6 +27,10 @@ const AdminSchema = new Schema<IAdmin>(
         lastLoggedIn: { type: Date },
         otp: {
             code: { type: String },
+            expires: { type: Date }
+        },
+        resetToken: {
+            token: { type: String },
             expires: { type: Date }
         }
     },
