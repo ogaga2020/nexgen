@@ -12,7 +12,7 @@ type Transaction = {
     userId: string;
     user: TxUser;
     amount: number;
-    type: 'initial' | 'balance';
+    type: 'initial' | 'balance' | 'total';
     reference: string;
     status: 'success' | 'pending';
     createdAt: string;
@@ -50,6 +50,7 @@ export default function TransactionsPage() {
     const [month, setMonth] = useState<'all' | string>('all');
     const [status, setStatus] = useState<'all' | 'success' | 'pending'>('all');
     const [tType, setTType] = useState<'all' | 'initial' | 'balance'>('all');
+    const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState<'date' | 'amount'>('date');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -63,6 +64,14 @@ export default function TransactionsPage() {
         const list = Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString('default', { month: 'long' }));
         return [{ label: 'All Months', value: 'all' }, ...list.map((label, i) => ({ label, value: String(i + 1) }))];
     }, []);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            setSearch(searchInput.toLowerCase());
+            setPage(1);
+        }, 350);
+        return () => clearTimeout(h);
+    }, [searchInput]);
 
     const fetchTx = async () => {
         setLoading(true);
@@ -126,11 +135,10 @@ export default function TransactionsPage() {
             Name: t.user.fullName,
             Email: t.user.email,
             Phone: t.user.phone,
-            Amount: t.amount,
-            Type: t.type,
-            Reference: t.reference,
+            Total: t.amount,
             Status: t.status,
-            Date: new Date(t.createdAt).toLocaleString(),
+            'Last Reference': t.reference,
+            'Last Update': new Date(t.createdAt).toLocaleString(),
         }));
 
         const ws = XLSX.utils.json_to_sheet(sheetData);
@@ -162,7 +170,7 @@ export default function TransactionsPage() {
             <section className="bg-gradient-to-r from-green-800 to-green-500 text-white py-10 px-4">
                 <div className="max-w-7xl mx-auto">
                     <h1 className="text-3xl md:text-4xl font-bold">Transactions</h1>
-                    <p className="opacity-90 mt-1">View and export payment activity</p>
+                    <p className="opacity-90 mt-1">Consolidated per user. View totals and export.</p>
                 </div>
             </section>
 
@@ -173,24 +181,21 @@ export default function TransactionsPage() {
                         <p className="text-2xl font-semibold mt-1">₦{summary.sumSuccess.toLocaleString()}</p>
                     </div>
                     <div className="bg-white border rounded-xl p-4 shadow-sm">
-                        <p className="text-gray-500 text-sm">Pending</p>
+                        <p className="text-gray-500 text-sm">Pending Initials</p>
                         <p className="text-2xl font-semibold mt-1">{summary.pending}</p>
                     </div>
                     <div className="bg-white border rounded-xl p-4 shadow-sm">
-                        <p className="text-gray-500 text-sm">Total Records</p>
+                        <p className="text-gray-500 text-sm">Total Users</p>
                         <p className="text-2xl font-semibold mt-1">{total}</p>
                     </div>
                 </div>
 
-                <div className="bg-white border rounded-xl shadow-sm p-4 mb-6 grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 gap-3 items-end">
-                    <div className="col-span-2">
+                <div className="bg-white border rounded-xl shadow-sm p-4 mb-6 grid lg:grid-cols-6 md:grid-cols-4 sm:grid-cols-2 gap-3 items-end">
+                    <div className="lg:col-span-2 md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
                         <input
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setPage(1);
-                            }}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
                             placeholder="Name, email, or reference…"
                             className="input-field bg-white w-full"
                         />
@@ -231,7 +236,7 @@ export default function TransactionsPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Include Part</label>
                         <select
                             value={tType}
                             onChange={(e) => {
@@ -240,13 +245,13 @@ export default function TransactionsPage() {
                             }}
                             className="input-field bg-white w-full"
                         >
-                            <option value="all">All</option>
-                            <option value="initial">Initial</option>
-                            <option value="balance">Balance</option>
+                            <option value="all">Both (Total)</option>
+                            <option value="initial">Initial Only</option>
+                            <option value="balance">Balance Only</option>
                         </select>
                     </div>
 
-                    <div className="col-span-2 md:col-span-1">
+                    <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Sort</label>
                         <div className="flex gap-2">
                             <select
@@ -257,8 +262,8 @@ export default function TransactionsPage() {
                                 }}
                                 className="input-field bg-white"
                             >
-                                <option value="date">Date</option>
-                                <option value="amount">Amount</option>
+                                <option value="date">Last Update</option>
+                                <option value="amount">Total Amount</option>
                             </select>
                             <select
                                 value={sortDir}
@@ -274,7 +279,7 @@ export default function TransactionsPage() {
                         </div>
                     </div>
 
-                    <div className="w-full sm:col-start-2 md:col-start-3 lg:col-start-5 sm:flex sm:justify-end">
+                    <div className="w-full lg:col-start-6 md:col-start-4 sm:col-start-2 sm:flex sm:justify-end">
                         <button
                             onClick={exportToExcel}
                             className="w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded-md"
@@ -290,11 +295,10 @@ export default function TransactionsPage() {
                             <tr>
                                 <th className="px-4 py-3 text-left">Name</th>
                                 <th className="px-4 py-3">Email</th>
-                                <th className="px-4 py-3">Amount</th>
-                                <th className="px-4 py-3">Type</th>
+                                <th className="px-4 py-3">Total Paid</th>
                                 <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Reference</th>
-                                <th className="px-4 py-3">Date</th>
+                                <th className="px-4 py-3">Last Ref</th>
+                                <th className="px-4 py-3">Last Update</th>
                                 <th className="px-4 py-3">Action</th>
                             </tr>
                         </thead>
@@ -304,7 +308,6 @@ export default function TransactionsPage() {
                                     <td className="px-4 py-2 text-left">{t.user.fullName}</td>
                                     <td className="px-4 py-2">{t.user.email}</td>
                                     <td className="px-4 py-2">₦{t.amount.toLocaleString()}</td>
-                                    <td className="px-4 py-2 capitalize">{t.type}</td>
                                     <td className="px-4 py-2">
                                         <span className={`px-2 py-1 rounded text-xs font-semibold ${badge(t.status)}`}>{t.status}</span>
                                     </td>
@@ -322,7 +325,7 @@ export default function TransactionsPage() {
                             ))}
                             {transactions.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
+                                    <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
                                         {loading ? 'Loading…' : 'No transactions found.'}
                                     </td>
                                 </tr>
@@ -339,7 +342,6 @@ export default function TransactionsPage() {
                                 <p className="text-xs text-gray-500 truncate">{t.user.email}</p>
                                 <div className="mt-1 flex items-center gap-2 text-xs">
                                     <span className="font-semibold">₦{t.amount.toLocaleString()}</span>
-                                    <span className="capitalize text-gray-600">{t.type}</span>
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${badge(t.status)}`}>{t.status}</span>
                                 </div>
                                 <p className="mt-1 text-xs text-gray-500">Ref: {t.reference}</p>

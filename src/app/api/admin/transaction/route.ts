@@ -45,13 +45,13 @@ export async function GET(req: NextRequest) {
         const { page, all, status, type, search, month, sortKey, sortDir } = parsed.data;
         const limit = 20;
 
-        const query: Record<string, any> = {};
-        if (status) query.status = status;
-        if (type) query.type = type;
+        const baseQuery: Record<string, any> = {};
+        if (status) baseQuery.status = status;
+        if (type) baseQuery.type = type;
 
         if (month && month !== 'all') {
             const m = Number(month);
-            query.$expr = { $eq: [{ $month: '$createdAt' }, m] };
+            baseQuery.$expr = { $eq: [{ $month: '$createdAt' }, m] };
         }
 
         if (search && search.trim()) {
@@ -63,43 +63,104 @@ export async function GET(req: NextRequest) {
                 .lean()
                 .exec();
             const userIds = matchingUsers.map((u) => u._id);
-            query.$or = [{ userId: { $in: userIds } }, { reference: { $regex: re } }];
+            baseQuery.$or = [{ userId: { $in: userIds } }, { reference: { $regex: re } }];
         }
 
-        const sort: Record<string, 1 | -1> =
+        const sortTx: Record<string, 1 | -1> =
             sortKey === 'amount' ? { amount: sortDir === 'asc' ? 1 : -1 } : { createdAt: sortDir === 'asc' ? 1 : -1 };
 
-        const baseFind = Transaction.find(query).sort(sort).populate('userId', 'fullName email phone');
+        const txDocs: TxDoc[] = await Transaction.find(baseQuery)
+            .sort(sortTx)
+            .populate('userId', 'fullName email phone')
+            .lean();
 
-        const docs =
-            all === '1'
-                ? await baseFind.lean()
-                : await baseFind.skip((page - 1) * limit).limit(limit).lean();
+        const byUser = new Map<
+            string,
+            {
+                _id: string;
+                userId: string;
+                user: { fullName: string; email: string; phone: string };
+                amount: number;
+                type: 'total';
+                status: TxStatus;
+                reference: string;
+                createdAt: Date;
+                hasPending: boolean;
+                lastDate: Date;
+                lastRef: string;
+            }
+        >();
 
-        const transactions = (docs as TxDoc[]).map((t) => ({
-            _id: String(t._id),
-            userId: String((t.userId as any)?._id ?? t.userId),
-            amount: t.amount,
-            type: t.type,
-            reference: t.reference,
-            status: t.status,
-            createdAt: t.createdAt,
-            user: {
-                fullName: (t.userId as any)?.fullName ?? '',
-                email: (t.userId as any)?.email ?? '',
-                phone: (t.userId as any)?.phone ?? '',
-            },
+        for (const t of txDocs) {
+            const uid = String((t.userId as any)?._id ?? t.userId);
+            const name = (t.userId as any)?.fullName ?? '';
+            const email = (t.userId as any)?.email ?? '';
+            const phone = (t.userId as any)?.phone ?? '';
+            const createdAt = new Date(t.createdAt);
+            const ref = t.reference;
+
+            const existing = byUser.get(uid);
+            if (!existing) {
+                byUser.set(uid, {
+                    _id: uid,
+                    userId: uid,
+                    user: { fullName: name, email, phone },
+                    amount: t.amount,
+                    type: 'total',
+                    status: t.status,
+                    reference: ref,
+                    createdAt,
+                    hasPending: t.status === 'pending',
+                    lastDate: createdAt,
+                    lastRef: ref,
+                });
+            } else {
+                existing.amount += t.amount;
+                if (createdAt > existing.lastDate) {
+                    existing.lastDate = createdAt;
+                    existing.lastRef = ref;
+                }
+                if (t.status === 'pending') existing.hasPending = true;
+                existing.status = existing.hasPending ? 'pending' : 'success';
+            }
+        }
+
+        const grouped = Array.from(byUser.values());
+
+        grouped.sort((a, b) => {
+            if (sortKey === 'amount') {
+                return sortDir === 'asc' ? a.amount - b.amount : b.amount - a.amount;
+            }
+            return sortDir === 'asc'
+                ? a.lastDate.getTime() - b.lastDate.getTime()
+                : b.lastDate.getTime() - a.lastDate.getTime();
+        });
+
+        const totalGrouped = grouped.length;
+        const paginated =
+            all === '1' ? grouped : grouped.slice((page - 1) * limit, (page - 1) * limit + limit);
+
+        const transactions = paginated.map((g) => ({
+            _id: g._id,
+            userId: g.userId,
+            amount: g.amount,
+            type: 'total' as const,
+            reference: g.lastRef,
+            status: g.hasPending ? ('pending' as const) : ('success' as const),
+            createdAt: g.lastDate,
+            user: g.user,
         }));
 
-        const [total, sumAgg] = await Promise.all([
-            Transaction.countDocuments(query),
+        const [sumAgg] = await Promise.all([
             Transaction.aggregate<AggByStatus>([
-                { $match: query },
+                { $match: baseQuery },
                 { $group: { _id: '$status', totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } },
             ]),
         ]);
 
-        const byStatus: Partial<Record<TxStatus, AggByStatus>> = Object.fromEntries(sumAgg.map((x) => [x._id, x]));
+        const byStatus: Partial<Record<TxStatus, AggByStatus>> = Object.fromEntries(
+            (sumAgg || []).map((x) => [x._id, x])
+        );
 
         const pendingInitialQuery: Record<string, any> = { status: 'pending', type: 'initial' };
         if (month && month !== 'all') {
@@ -127,9 +188,9 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             transactions,
-            total,
+            total: totalGrouped,
             page,
-            pageSize: limit,
+            pageSize: all === '1' ? totalGrouped : limit,
             summary,
         });
     } catch {
