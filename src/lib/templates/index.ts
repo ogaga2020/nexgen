@@ -46,7 +46,9 @@ const wrapThemed = (content: string, role: Role = "user") => {
     <div style="text-align:center;margin-bottom:18px;">
       <img src="${COMPANY_LOGO}" alt="${APP_NAME}" width="120" style="display:inline-block;"/>
     </div>
-    ${content}
+    <div style="text-align:center;margin-bottom:20px;">
+      ${content}
+    </div>
     <p style="margin-top:28px;font-size:12px;color:${role === 'admin' ? THEMES.admin.accent : '#64748b'};text-align:center;">${APP_NAME}</p>
   </div>
 `;
@@ -55,7 +57,7 @@ const wrapThemed = (content: string, role: Role = "user") => {
 const btn = (href: string, label: string, role: Role = "user") => {
   const t = THEMES[role];
   return `
-  <a href="${href}" style="display:inline-block;background:${t.ctaBg};color:${t.ctaText};text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">
+  <a href="${href}" style="display:inline-block;background:${t.ctaBg};color:${t.ctaText};text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;margin-top:12px;">
     ${label}
   </a>
 `;
@@ -65,20 +67,20 @@ export const adminAccountCreated = (name: string, email: string, phone: string) 
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Admin Account Created</h2>
     <p style="margin:0 0 10px;">Hello ${name}, your administrator account is ready.</p>
-    <div style="margin:14px 0;padding:12px;background:${THEMES.admin.panelBg};border:1px solid ${THEMES.admin.panelBorder};border-radius:8px;">
+    <div style="margin:14px auto;padding:12px;background:${THEMES.admin.panelBg};border:1px solid ${THEMES.admin.panelBorder};border-radius:8px;max-width:360px;text-align:left;">
       <p style="margin:0;line-height:1.6;">
         <strong>Email:</strong> ${email}<br/>
         <strong>Phone:</strong> ${phone}
       </p>
     </div>
-    <div style="margin-top:16px;">${btn(`${BASE_URL}/admin`, "Go to Admin Login", "admin")}</div>
+    ${btn(`${BASE_URL}/admin`, "Go to Admin Login", "admin")}
   `, "admin");
 
 export const sendOtpTemplate = (otp: string) =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Verification Code</h2>
     <p style="margin:0 0 10px;">Use the code below to continue:</p>
-    <div style="margin:14px 0;padding:14px;border:1px dashed ${THEMES.admin.dashedBorder};border-radius:10px;background:#f0fdf4;text-align:center;">
+    <div style="margin:14px auto;padding:14px;border:1px dashed ${THEMES.admin.dashedBorder};border-radius:10px;background:#f0fdf4;text-align:center;max-width:280px;">
       <span style="font-size:28px;letter-spacing:4px;font-weight:700;color:${THEMES.admin.accent};">${otp}</span>
     </div>
     <p style="margin:0;">This code expires in <strong>10 minutes</strong>.</p>
@@ -88,7 +90,7 @@ export const resetSuccessTemplate = () =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Password Reset Successful</h2>
     <p style="margin:0 0 10px;">You can now sign in with your new password.</p>
-    <div style="margin-top:16px;">${btn(`${BASE_URL}/admin`, "Sign In", "admin")}</div>
+    ${btn(`${BASE_URL}/admin`, "Sign In", "admin")}
     <p style="margin-top:16px;font-size:12px;color:#64748b;">If you did not perform this action, please contact support immediately.</p>
   `, "admin");
 
@@ -102,7 +104,7 @@ export const paymentRecordedTemplate = (
   wrapThemed(`
     <h2 style="color:${THEMES[role].heading};margin:0 0 12px;">Payment Recorded</h2>
     <p style="margin:0 0 10px;">A ${kind.toLowerCase()} payment has been recorded.</p>
-    <div style="margin:14px 0;padding:12px;background:${THEMES[role].panelBg};border:1px solid ${THEMES[role].panelBorder};border-radius:8px;">
+    <div style="margin:14px auto;padding:12px;background:${THEMES[role].panelBg};border:1px solid ${THEMES[role].panelBorder};border-radius:8px;max-width:400px;text-align:left;">
       <p style="margin:0;line-height:1.7;">
         <strong>Student:</strong> ${student}<br/>
         <strong>Amount:</strong> ₦${amount.toLocaleString()}<br/>
@@ -122,7 +124,7 @@ export const welcomeAfterVerificationTemplate = (
   wrapThemed(`
     <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Welcome to NexGen</h2>
     <p style="margin:0 0 10px;">Hello ${name}, your registration has been verified and your training is confirmed.</p>
-    <div style="margin:14px 0;padding:12px;background:#ecfeff;border:1px solid #bae6fd;border-radius:8px;">
+    <div style="margin:14px auto;padding:12px;background:#ecfeff;border:1px solid #bae6fd;border-radius:8px;max-width:400px;text-align:left;">
       <p style="margin:0;line-height:1.7;">
         <strong>Programme:</strong> ${program}<br/>
         <strong>Duration:</strong> ${durationMonths} months<br/>
