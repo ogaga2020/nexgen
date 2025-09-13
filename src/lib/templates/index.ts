@@ -76,10 +76,10 @@ export const adminAccountCreated = (name: string, email: string, phone: string) 
 
 export const sendOtpTemplate = (otp: string) =>
   wrapThemed(`
-    <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Verification Code</h2>
+    <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Verification Code</h2>
     <p style="margin:0 0 10px;">Use the code below to continue:</p>
-    <div style="margin:14px 0;padding:14px;border:1px dashed ${THEMES.user.dashedBorder};border-radius:10px;background:#f0fdf4;text-align:center;">
-      <span style="font-size:28px;letter-spacing:4px;font-weight:700;color:${THEMES.user.accent};">${otp}</span>
+    <div style="margin:14px 0;padding:14px;border:1px dashed ${THEMES.admin.dashedBorder};border-radius:10px;background:#f0fdf4;text-align:center;">
+      <span style="font-size:28px;letter-spacing:4px;font-weight:700;color:${THEMES.admin.accent};">${otp}</span>
     </div>
     <p style="margin:0;">This code expires in <strong>10 minutes</strong>.</p>
   `, "user");
