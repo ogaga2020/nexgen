@@ -7,8 +7,9 @@ export const runtime = 'nodejs';
 export async function GET() {
   try {
     await connectDB();
+
     const admins = await Admin.find({}, 'fullName email phone role createdAt lastLoggedIn')
-      .sort({ createdAt: -1 })
+      .sort({ lastLoggedIn: -1 })
       .lean();
 
     return NextResponse.json(
