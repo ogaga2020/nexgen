@@ -112,7 +112,7 @@ export default function HomePage() {
             </ul>
 
             <img
-              src="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=1200&auto=format&fit=crop"
+              src="https://media.gettyimages.com/id/1036354066/photo/african-american-woman-working-at-shipping-port.jpg?s=612x612&w=0&k=20&c=TEE9cSkoiXeC9UgQvJ96kEBpnktPpYYIGtFgY6hKEtA="
               alt="Training at NexGen"
               className="h-72 w-full rounded-2xl object-cover shadow-sm ring-1 ring-black/10 md:h-80"
               loading="lazy"
