@@ -134,7 +134,7 @@ export default function StudentsPage() {
         <>
             <div className="max-w-7xl mx-auto py-10 px-4">
                 <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
-                    <h1 className="text-3xl font-bold">Students</h1>
+                    <h1 className="text-3xl font-bold">Students Information</h1>
                     <p className="text-lg mt-1">Manage student registrations and payments</p>
                 </div>
 
@@ -153,7 +153,10 @@ export default function StudentsPage() {
                         />
 
                         <div ref={filterWrapRef} className="relative">
-                            <button onClick={() => setFilterMenuOpen((v) => !v)} className="border rounded px-3 py-2 flex items-center gap-2 hover:bg-gray-100 bg-white">
+                            <button
+                                onClick={() => setFilterMenuOpen((v) => !v)}
+                                className="border rounded px-3 py-2 flex items-center gap-2 hover:bg-gray-100 bg-white"
+                            >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 12h12M10 20h4" />
                                 </svg>
@@ -176,9 +179,27 @@ export default function StudentsPage() {
                         </div>
                     </div>
 
-                    <button onClick={handleExport} className="bg-[var(--primary)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-hover)] transition">
-                        Export to Excel
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => fetchUsers(currentPage, filter, search)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50"
+                            title="Refresh list"
+                            disabled={loading}
+                        >
+                            <svg viewBox="0 0 24 24" className="w-4 h-4">
+                                <path fill="currentColor" d="M12 6V3L8 7l4 4V8c2.76 0 5 2.24 5 5a5 5 0 0 1-9.9 1H5.02A7 7 0 0 0 19 13c0-3.87-3.13-7-7-7Z" />
+                            </svg>
+                            {loading ? 'Refreshing…' : 'Refresh'}
+                        </button>
+
+                        <button
+                            onClick={handleExport}
+                            className="bg-[var(--primary)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-hover)] transition"
+                            disabled={loading || users.length === 0}
+                        >
+                            Export to Excel
+                        </button>
+                    </div>
                 </div>
 
                 <div className="hidden md:block overflow-x-auto rounded-lg shadow bg-white">
@@ -203,21 +224,18 @@ export default function StudentsPage() {
                                             <span className="whitespace-nowrap">{user.fullName}</span>
                                         </div>
                                     </td>
-
                                     <td className="px-5 py-3 whitespace-nowrap">{user.email}</td>
                                     <td className="px-5 py-3 whitespace-nowrap">{user.phone}</td>
                                     <td className="px-5 py-3 whitespace-nowrap">{user.trainingType}</td>
                                     <td className="px-5 py-3 whitespace-nowrap">{user.trainingDuration} months</td>
-
                                     <td className="px-5 py-3">
                                         <StatusBadge status={user.paymentStatus} />
                                     </td>
-
                                     <td className="px-5 py-3 text-right whitespace-nowrap">
                                         <span className="inline-flex items-center gap-3">
                                             <button onClick={() => setSelectedUser(user)} className="text-blue-600 hover:underline">View</button>
                                             <EditUserModalTrigger user={user} onSaved={() => fetchUsers(currentPage, filter, search)} />
-                                            <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:underline">Delete</button>
+                                            {/* <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:underline">Delete</button> */}
                                         </span>
                                     </td>
                                 </tr>
@@ -225,7 +243,9 @@ export default function StudentsPage() {
                         </tbody>
                     </table>
 
-                    {users.length === 0 && <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No students found.'}</p>}
+                    {users.length === 0 && (
+                        <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No students found.'}</p>
+                    )}
                 </div>
 
                 <div className="md:hidden space-y-2">
@@ -243,7 +263,9 @@ export default function StudentsPage() {
                             </button>
                         </div>
                     ))}
-                    {users.length === 0 && <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No students found.'}</p>}
+                    {users.length === 0 && (
+                        <p className="text-center text-gray-500 py-10">{loading ? 'Loading…' : 'No students found.'}</p>
+                    )}
                 </div>
 
                 {total > 1 && (
@@ -252,7 +274,8 @@ export default function StudentsPage() {
                             <button
                                 key={page}
                                 onClick={() => fetchUsers(page, filter, search)}
-                                className={`px-3 py-1 rounded ${page === currentPage ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+                                disabled={loading}
+                                className={`px-3 py-1 rounded ${page === currentPage ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 hover:bg-gray-300 disabled:opacity-60'}`}
                             >
                                 {page}
                             </button>
@@ -435,13 +458,13 @@ function UserDetailsModal({
                         <button onClick={() => setEditOpen(true)} className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50">
                             Edit
                         </button>
-                        <button
+                        {/* <button
                             onClick={handleDelete}
                             className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
                             disabled={busy}
                         >
                             Delete
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -493,7 +516,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: User; onClose: () => 
     const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string | undefined;
     const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET as string | undefined;
 
-    const cdn = (url?: string, w = 160, h = 160) => {
+    const cdnLocal = (url?: string, w = 160, h = 160) => {
         if (!url) return '';
         if (/\[url\]/i.test(url)) return '';
         return url.includes('/upload/')
@@ -552,7 +575,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: User; onClose: () => 
                         <div className="space-y-3">
                             <div className="aspect-square w-[200px] overflow-hidden rounded-xl border bg-gray-50">
                                 {form.photo ? (
-                                    <img src={cdn(form.photo, 200, 200)} alt="Student" className="h-full w-full object-cover" />
+                                    <img src={cdnLocal(form.photo, 200, 200)} alt="Student" className="h-full w-full object-cover" />
                                 ) : null}
                             </div>
 
@@ -620,7 +643,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: User; onClose: () => 
                             <div className="space-y-3">
                                 <div className="aspect-square w-[200px] overflow-hidden rounded-xl border bg-gray-50">
                                     {form.guarantor.photo ? (
-                                        <img src={cdn(form.guarantor.photo, 200, 200)} alt="Guarantor" className="h-full w-full object-cover" />
+                                        <img src={cdnLocal(form.guarantor.photo, 200, 200)} alt="Guarantor" className="h-full w-full object-cover" />
                                     ) : null}
                                 </div>
 
