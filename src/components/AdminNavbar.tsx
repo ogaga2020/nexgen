@@ -19,7 +19,7 @@ export default function AdminNavbar() {
     const NavButton = ({ href, label, mobile = false }: { href: string; label: string; mobile?: boolean }) => (
         <button
             onClick={() => {
-                router.push(href);
+                router.push(href as any);
                 setOpen(false);
             }}
             className={[
@@ -54,7 +54,7 @@ export default function AdminNavbar() {
                     <NavButton href="/admin/dashboard" label="Dashboard" />
                     <NavButton href="/admin/students" label="Students" />
                     <NavButton href="/admin/media" label="Media" />
-                    <NavButton href="/admin/create" label="Create Admin" />
+                    <NavButton href="/admin/create" label="Admins" />
                     <NavButton href="/admin/transaction" label="Transaction" />
                     <LogoutButton />
                 </div>
@@ -82,7 +82,7 @@ export default function AdminNavbar() {
                     <NavButton mobile href="/admin/dashboard" label="Dashboard" />
                     <NavButton mobile href="/admin/students" label="Students" />
                     <NavButton mobile href="/admin/media" label="Media" />
-                    <NavButton mobile href="/admin/create" label="Create Admin" />
+                    <NavButton mobile href="/admin/create" label="Admins" />
                     <NavButton mobile href="/admin/transaction" label="Transaction" />
                     <LogoutButton mobile />
                 </div>
