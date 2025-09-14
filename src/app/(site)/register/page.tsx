@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import type { SubmitHandler, Resolver, FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -45,6 +45,7 @@ export default function RegisterPage() {
         handleSubmit,
         setValue,
         reset,
+        control,
         formState: { errors, isSubmitting },
     } = useForm<RegisterForm>({
         resolver: zodResolver(FormSchema) as Resolver<RegisterForm>,
@@ -97,10 +98,7 @@ export default function RegisterPage() {
         const setBusy = field === 'photo' ? setUploadingUserPhoto : setUploadingGuarantorPhoto;
         setBusy(true);
         try {
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, {
-                method: 'POST',
-                body: formData,
-            });
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, { method: 'POST', body: formData });
             const payload = await res.json().catch(() => null);
             if (!res.ok) {
                 const msg = payload?.error?.message || res.statusText || 'Upload failed';
@@ -199,115 +197,199 @@ export default function RegisterPage() {
 
     const isUploading = uploadingUserPhoto || uploadingGuarantorPhoto;
 
+    const duration = useWatch({ control, name: 'trainingDuration' }) as 4 | 8 | 12 | undefined;
+    const tuition = duration ? TUITION_BY_DURATION[duration] : undefined;
+    const sixty = tuition ? Math.round(tuition * 0.6) : undefined;
+    const forty = tuition && sixty !== undefined ? tuition - sixty : undefined;
+
     return (
         <>
-            <section className="bg-gradient-to-br from-blue-900 to-blue-600 text-white py-20 px-6 text-center">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4">Training Registration</h1>
-                <p className="text-lg md:text-xl max-w-3xl mx-auto">Pay 60% now, 40% before graduation.</p>
+            <section className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600" />
+                <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-24 text-center text-white">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm ring-1 ring-white/15">
+                        Secure your seat • 60% now, 40% before graduation
+                    </div>
+                    <h1 className="mt-5 text-4xl md:text-5xl font-extrabold tracking-tight">Training Registration</h1>
+                    <p className="mt-4 md:mt-6 text-lg md:text-xl text-white/90 max-w-3xl mx-auto">
+                        Learn Electrical, Solar, or Plumbing with hands-on workshops and real tools.
+                    </p>
+                </div>
+                <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl" />
             </section>
+
             <div className="bg-white">
-                <div className="max-w-5xl mx-auto py-12 px-4">
-                    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="grid gap-8 bg-white rounded-xl border shadow-sm p-6 md:p-8">
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block font-ui mb-1 text-gray-700 font-medium">Full Name</label>
-                                <input {...register('fullName')} className="input-field bg-white" />
-                                {errors.fullName && <p className="text-danger text-sm mt-1">{errors.fullName.message}</p>}
-                            </div>
-                            <div>
-                                <label className="block font-ui mb-1 text-gray-700 font-medium">Email</label>
-                                <input {...register('email')} type="email" className="input-field bg-white" />
-                                {errors.email && <p className="text-danger text-sm mt-1">{errors.email.message}</p>}
-                            </div>
-                        </div>
+                <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+                    <div className="grid gap-6 md:grid-cols-3">
+                        <form
+                            onSubmit={handleSubmit(onSubmit, onInvalid)}
+                            className="md:col-span-2 rounded-2xl border bg-white p-6 md:p-8 shadow-sm ring-1 ring-black/10"
+                        >
+                            <h2 className="text-xl font-semibold text-gray-900">Your Details</h2>
+                            <p className="mt-1 text-sm text-gray-600">We’ll use this to set up your profile and enrollment.</p>
 
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block font-ui mb-1 text-gray-700 font-medium">Phone</label>
-                                <input {...register('phone')} type="tel" className="input-field bg-white" />
-                                {errors.phone && <p className="text-danger text-sm mt-1">{errors.phone.message}</p>}
-                            </div>
-                            <div>
-                                <label className="block font-ui mb-1 text-gray-700 font-medium">Upload Passport Photo</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    ref={passportRef}
-                                    disabled={uploadingUserPhoto || isSubmitting}
-                                    onChange={(e) => handleUpload(e, 'photo')}
-                                    className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:text-gray-700 hover:file:bg-gray-50"
-                                />
-                                {errors.photo && <p className="text-danger text-sm mt-1">{errors.photo.message}</p>}
-                            </div>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block font-ui mb-1 text-gray-700 font-medium">Training Type</label>
-                                <select {...register('trainingType')} className="input-field bg-white">
-                                    <option value="">Select</option>
-                                    <option value="Electrical">Electrical</option>
-                                    <option value="Plumbing">Plumbing</option>
-                                    <option value="Solar">Solar</option>
-                                </select>
-                                {errors.trainingType && <p className="text-danger text-sm mt-1">{errors.trainingType.message}</p>}
-                            </div>
-                            <div>
-                                <label className="block font-ui mb-1 text-gray-700 font-medium">Duration (months)</label>
-                                <select {...register('trainingDuration')} className="input-field bg-white">
-                                    <option value="">Select</option>
-                                    <option value="4">4 months</option>
-                                    <option value="8">8 months</option>
-                                    <option value="12">12 months</option>
-                                </select>
-                                {errors.trainingDuration && <p className="text-danger text-sm mt-1">{errors.trainingDuration.message}</p>}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h2 className="text-2xl font-ui font-semibold text-primary mb-4">Guarantor Information</h2>
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <div className="mt-6 grid gap-6 md:grid-cols-2">
                                 <div>
-                                    <label className="block font-ui mb-1 text-gray-700 font-medium">Guarantor Full Name</label>
-                                    <input {...register('guarantor.fullName')} className="input-field bg-white" />
-                                    {errors.guarantor?.fullName && <p className="text-danger text-sm mt-1">{errors.guarantor.fullName.message}</p>}
+                                    <label className="mb-1 block font-medium text-gray-700">Full Name</label>
+                                    <input {...register('fullName')} className="input-field bg-white" />
+                                    {errors.fullName && <p className="mt-1 text-sm text-danger">{errors.fullName.message}</p>}
                                 </div>
                                 <div>
-                                    <label className="block font-ui mb-1 text-gray-700 font-medium">Guarantor Email</label>
-                                    <input {...register('guarantor.email')} className="input-field bg-white" />
-                                    {errors.guarantor?.email && <p className="text-danger text-sm mt-1">{errors.guarantor.email.message}</p>}
+                                    <label className="mb-1 block font-medium text-gray-700">Email</label>
+                                    <input {...register('email')} type="email" className="input-field bg-white" />
+                                    {errors.email && <p className="mt-1 text-sm text-danger">{errors.email.message}</p>}
                                 </div>
                                 <div>
-                                    <label className="block font-ui mb-1 text-gray-700 font-medium">Guarantor Phone</label>
-                                    <input {...register('guarantor.phone')} className="input-field bg-white" />
-                                    {errors.guarantor?.phone && <p className="text-danger text-sm mt-1">{errors.guarantor.phone.message}</p>}
+                                    <label className="mb-1 block font-medium text-gray-700">Phone</label>
+                                    <input {...register('phone')} type="tel" className="input-field bg-white" />
+                                    {errors.phone && <p className="mt-1 text-sm text-danger">{errors.phone.message}</p>}
                                 </div>
                                 <div>
-                                    <label className="block font-ui mb-1 text-gray-700 font-medium">Upload Guarantor Photo</label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        ref={guarantorRef}
-                                        disabled={uploadingGuarantorPhoto || isSubmitting}
-                                        onChange={(e) => handleUpload(e, 'guarantor.photo')}
-                                        className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:text-gray-700 hover:file:bg-gray-50"
-                                    />
-                                    {errors.guarantor?.photo && <p className="text-danger text-sm mt-1">{errors.guarantor.photo.message}</p>}
+                                    <label className="mb-1 block font-medium text-gray-700">Passport Photo</label>
+                                    <div className="flex items-center gap-3">
+                                        <label className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                                            {uploadingUserPhoto ? 'Uploading…' : 'Choose file'}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                ref={passportRef}
+                                                disabled={uploadingUserPhoto || isSubmitting}
+                                                onChange={(e) => handleUpload(e, 'photo')}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        <span className="text-xs text-gray-500">Max 3MB • JPG/PNG</span>
+                                    </div>
+                                    {errors.photo && <p className="mt-1 text-sm text-danger">{errors.photo.message}</p>}
                                 </div>
                             </div>
-                        </div>
 
-                        <div>
-                            <button
-                                type="submit"
-                                disabled={isSubmitting || isUploading}
-                                className="w-full bg-primary text-white py-3 px-6 rounded-md hover:bg-blue-800 transition disabled:opacity-60 disabled:cursor-not-allowed text-center"
-                            >
-                                {isSubmitting ? 'Submitting…' : 'Submit Registration'}
-                            </button>
-                            <p className="text-xs text-gray-500 mt-2 text-center">Your details will be verified by our Admin after payment confirmation.</p>
-                        </div>
-                    </form>
+                            <div className="mt-8 grid gap-6 md:grid-cols-2">
+                                <div>
+                                    <label className="mb-1 block font-medium text-gray-700">Training Type</label>
+                                    <select {...register('trainingType')} className="input-field bg-white">
+                                        <option value="">Select</option>
+                                        <option value="Electrical">Electrical</option>
+                                        <option value="Plumbing">Plumbing</option>
+                                        <option value="Solar">Solar</option>
+                                    </select>
+                                    {errors.trainingType && <p className="mt-1 text-sm text-danger">{errors.trainingType.message}</p>}
+                                </div>
+                                <div>
+                                    <label className="mb-1 block font-medium text-gray-700">Duration (months)</label>
+                                    <select {...register('trainingDuration')} className="input-field bg-white">
+                                        <option value="">Select</option>
+                                        <option value="4">4 months</option>
+                                        <option value="8">8 months</option>
+                                        <option value="12">12 months</option>
+                                    </select>
+                                    {errors.trainingDuration && (
+                                        <p className="mt-1 text-sm text-danger">{errors.trainingDuration.message}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-10 border-t pt-6">
+                                <h3 className="text-lg font-semibold text-gray-900">Guarantor Information</h3>
+                                <p className="mt-1 text-sm text-gray-600">A responsible contact to validate your application.</p>
+
+                                <div className="mt-6 grid gap-6 md:grid-cols-2">
+                                    <div>
+                                        <label className="mb-1 block font-medium text-gray-700">Guarantor Full Name</label>
+                                        <input {...register('guarantor.fullName')} className="input-field bg-white" />
+                                        {errors.guarantor?.fullName && (
+                                            <p className="mt-1 text-sm text-danger">{errors.guarantor.fullName.message}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block font-medium text-gray-700">Guarantor Email</label>
+                                        <input {...register('guarantor.email')} className="input-field bg-white" />
+                                        {errors.guarantor?.email && (
+                                            <p className="mt-1 text-sm text-danger">{errors.guarantor.email.message}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block font-medium text-gray-700">Guarantor Phone</label>
+                                        <input {...register('guarantor.phone')} className="input-field bg-white" />
+                                        {errors.guarantor?.phone && (
+                                            <p className="mt-1 text-sm text-danger">{errors.guarantor.phone.message}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block font-medium text-gray-700">Guarantor Photo</label>
+                                        <div className="flex items-center gap-3">
+                                            <label className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                                                {uploadingGuarantorPhoto ? 'Uploading…' : 'Choose file'}
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    ref={guarantorRef}
+                                                    disabled={uploadingGuarantorPhoto || isSubmitting}
+                                                    onChange={(e) => handleUpload(e, 'guarantor.photo')}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                            <span className="text-xs text-gray-500">Max 3MB • JPG/PNG</span>
+                                        </div>
+                                        {errors.guarantor?.photo && (
+                                            <p className="mt-1 text-sm text-danger">{errors.guarantor.photo.message}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-8">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting || isUploading}
+                                    className="w-full rounded-lg bg-[var(--primary)] px-6 py-3 font-semibold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {isSubmitting ? 'Submitting…' : 'Submit Registration'}
+                                </button>
+                                <p className="mt-2 text-center text-xs text-gray-500">
+                                    Your details will be verified by our Admin after payment confirmation.
+                                </p>
+                            </div>
+                        </form>
+
+                        <aside className="md:sticky md:top-6 h-fit rounded-2xl border bg-white p-6 shadow-sm ring-1 ring-black/10">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">Tuition Summary</h3>
+                                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
+                                    60/40 plan
+                                </span>
+                            </div>
+
+                            <div className="mt-4 space-y-3 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">Duration</span>
+                                    <span className="font-medium text-gray-900">{duration ? `${duration} months` : '-'}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">Tuition</span>
+                                    <span className="font-medium text-gray-900">{tuition ? fmt(tuition) : '-'}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">60% (now)</span>
+                                    <span className="font-medium text-gray-900">{sixty ? fmt(sixty) : '-'}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">40% (before graduation)</span>
+                                    <span className="font-medium text-gray-900">{forty ? fmt(forty) : '-'}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 rounded-xl bg-gray-50 p-4 text-sm text-gray-700 ring-1 ring-gray-100">
+                                <p className="font-medium text-gray-900">What happens next?</p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5">
+                                    <li>You’ll be redirected to WhatsApp to request payment details.</li>
+                                    <li>After payment, our team confirms your enrollment.</li>
+                                    <li>Bring your ID and receipt on your first day.</li>
+                                </ul>
+                            </div>
+                        </aside>
+                    </div>
                 </div>
             </div>
         </>
