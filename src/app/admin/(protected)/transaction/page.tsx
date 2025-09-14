@@ -167,12 +167,12 @@ export default function TransactionsPage() {
 
     return (
         <>
-            <section className="bg-gradient-to-r from-green-800 to-green-500 text-white py-10 px-4">
-                <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto py-10 px-4">
+                <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 mb-8">
                     <h1 className="text-3xl md:text-4xl font-bold">Transactions</h1>
                     <p className="opacity-90 mt-1">Consolidated per user. View totals and export.</p>
                 </div>
-            </section>
+            </div>
 
             <div className="max-w-7xl mx-auto px-4 -mt-8">
                 <div className="grid sm:grid-cols-3 gap-4 mb-6">
