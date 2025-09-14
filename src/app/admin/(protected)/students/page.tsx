@@ -90,19 +90,19 @@ export default function StudentsPage() {
         return <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-200 text-gray-700">{status}</span>;
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Delete this student?')) return;
-        try {
-            await axios.delete(`/api/admin/users/${id}`);
-            const newTotal = Math.max(0, total - 1);
-            const lastPage = Math.max(1, Math.ceil(newTotal / ITEMS_PER_PAGE));
-            const target = currentPage > lastPage ? lastPage : currentPage;
-            success('Student deleted');
-            fetchUsers(target, filter, search);
-        } catch (e: any) {
-            error(e?.response?.data?.error || e?.message || 'Failed to delete');
-        }
-    };
+    // const handleDelete = async (id: string) => {
+    //     if (!window.confirm('Delete this student?')) return;
+    //     try {
+    //         await axios.delete(`/api/admin/users/${id}`);
+    //         const newTotal = Math.max(0, total - 1);
+    //         const lastPage = Math.max(1, Math.ceil(newTotal / ITEMS_PER_PAGE));
+    //         const target = currentPage > lastPage ? lastPage : currentPage;
+    //         success('Student deleted');
+    //         fetchUsers(target, filter, search);
+    //     } catch (e: any) {
+    //         error(e?.response?.data?.error || e?.message || 'Failed to delete');
+    //     }
+    // };
 
     const handleExport = () => {
         try {
@@ -355,20 +355,20 @@ function UserDetailsModal({
         }
     };
 
-    const handleDelete = async () => {
-        if (!window.confirm('Delete this student?')) return;
-        try {
-            setBusy(true);
-            await axios.delete(`/api/admin/users/${full._id}`);
-            success('Student deleted');
-            onUpdated();
-            onClose();
-        } catch (e: any) {
-            error(e?.response?.data?.error || e?.message || 'Failed to delete');
-        } finally {
-            setBusy(false);
-        }
-    };
+    // const handleDelete = async () => {
+    //     if (!window.confirm('Delete this student?')) return;
+    //     try {
+    //         setBusy(true);
+    //         await axios.delete(`/api/admin/users/${full._id}`);
+    //         success('Student deleted');
+    //         onUpdated();
+    //         onClose();
+    //     } catch (e: any) {
+    //         error(e?.response?.data?.error || e?.message || 'Failed to delete');
+    //     } finally {
+    //         setBusy(false);
+    //     }
+    // };
 
     return (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
