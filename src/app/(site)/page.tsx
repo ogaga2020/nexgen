@@ -199,7 +199,7 @@ export default function HomePage() {
       </section>
 
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-emerald-600" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600" />
         <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20 text-center text-white">
           <h2 className="text-3xl md:text-4xl font-extrabold">Ready to Begin Your Career?</h2>
           <p className="mt-3 md:mt-4 text-lg text-white/90">
