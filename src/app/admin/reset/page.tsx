@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'sonner';
 
-export default function ResetPasswordPage() {
+function Inner() {
   const sp = useSearchParams();
   const router = useRouter();
   const emailQS = sp.get('email') || '';
@@ -132,5 +132,13 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <Inner />
+    </Suspense>
   );
 }
