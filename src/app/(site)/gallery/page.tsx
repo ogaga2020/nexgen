@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
 type Category = 'all' | 'electric' | 'solar' | 'plumbing';
@@ -9,6 +9,7 @@ interface MediaItem {
     url: string;
     type: 'image' | 'video';
     category: Exclude<Category, 'all'>;
+    createdAt?: string;
 }
 
 export default function GalleryPage() {
@@ -37,7 +38,22 @@ export default function GalleryPage() {
     }, []);
 
     const tabs: Category[] = ['all', 'electric', 'solar', 'plumbing'];
-    const filtered = activeTab === 'all' ? media : media.filter((m) => m.category === activeTab);
+
+    const sorted = useMemo(() => {
+        const copy = [...media];
+        copy.sort((a, b) => {
+            const da = a.createdAt ? +new Date(a.createdAt) : 0;
+            const db = b.createdAt ? +new Date(b.createdAt) : 0;
+            if (db !== da) return db - da;
+            return b.url.localeCompare(a.url);
+        });
+        return copy;
+    }, [media]);
+
+    const filtered = useMemo(
+        () => (activeTab === 'all' ? sorted : sorted.filter((m) => m.category === activeTab)),
+        [sorted, activeTab]
+    );
 
     return (
         <>
