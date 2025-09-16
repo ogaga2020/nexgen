@@ -7,19 +7,31 @@ import { twoWeeksToFinishReminderTemplate, adminTwoWeeksReminderTemplate } from 
 
 export const runtime = 'nodejs';
 
+const TZ = 'Africa/Lagos';
+
+function startOfDayInTZ(date: Date, timeZone: string) {
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+    const parts = fmt.formatToParts(date);
+    const y = Number(parts.find(p => p.type === 'year')!.value);
+    const m = Number(parts.find(p => p.type === 'month')!.value);
+    const d = Number(parts.find(p => p.type === 'day')!.value);
+    return new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+}
+
 export async function GET() {
     try {
         await connectDB();
 
-        const today = new Date();
-        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
+        const todayStart = startOfDayInTZ(new Date(), TZ);
+        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-        const twoWeeksAheadStart = new Date(start);
-        twoWeeksAheadStart.setDate(twoWeeksAheadStart.getDate() + 14);
-        const twoWeeksAheadEnd = new Date(end);
-        twoWeeksAheadEnd.setDate(twoWeeksAheadEnd.getDate() + 14);
+        const twoWeeksAheadStart = new Date(todayStart.getTime() + 14 * 24 * 60 * 60 * 1000);
+        const twoWeeksAheadEnd = new Date(todayEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
 
         const users = await User.find({
             paymentStatus: { $ne: 'fully_paid' },
@@ -29,7 +41,7 @@ export async function GET() {
             .lean();
 
         for (const u of users) {
-            const dueStr = new Date(u.dueDate).toLocaleDateString();
+            const dueStr = new Date(u.dueDate).toLocaleDateString('en-NG', { timeZone: TZ, year: 'numeric', month: 'long', day: 'numeric' });
 
             await sendMail({
                 to: u.email,
@@ -44,7 +56,7 @@ export async function GET() {
             });
         }
 
-        return NextResponse.json({ sent: users.length });
+        return NextResponse.json({ sent: users.length, window: { twoWeeksAheadStart, twoWeeksAheadEnd }, tz: TZ });
     } catch {
         return NextResponse.json({ error: 'Failed to send reminders' }, { status: 500 });
     }
