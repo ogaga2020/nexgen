@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import User, { IUser } from "@/models/User";
+import User from "@/models/User";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,11 +11,11 @@ export async function GET(req: NextRequest) {
     const email = new URL(req.url).searchParams.get("email")?.toLowerCase().trim();
     if (!email) return NextResponse.json({ error: "email required" }, { status: 400 });
 
-    const u = await User.findOne({ email }).lean<IUser>();
+    const u = await User.findOne({ email }).lean();
     if (!u) return NextResponse.json({ found: false });
 
     const course = u.trainingType || "";
-    const months = u.trainingDuration?.toString() || "";
+    const months = u.trainingDuration ? `${u.trainingDuration} months` : "";
 
     return NextResponse.json({
       found: true,

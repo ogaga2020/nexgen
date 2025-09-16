@@ -21,10 +21,7 @@ export async function GET(req: NextRequest) {
         }
         : {};
 
-    const list = await Certificate.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(500)
-      .lean();
+    const list = await Certificate.find(filter).sort({ createdAt: -1 }).limit(500).lean();
 
     return NextResponse.json(
       (list || []).map((c) => ({

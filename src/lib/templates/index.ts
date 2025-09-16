@@ -190,10 +190,37 @@ type CertParams = {
   logoUrl?: string;
 };
 
+export const certificateEmailBody = ({
+  recipientName,
+  course,
+  months,
+  issuedOn,
+}: {
+  recipientName: string;
+  course: string;
+  months: string;
+  issuedOn: string;
+}) =>
+  wrapThemed(
+    `
+    <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Congratulations, ${(recipientName || "").toUpperCase()}!</h2>
+    <p style="margin:0 0 10px;">We’re proud to celebrate your successful completion of the <strong>${course}</strong> training program.</p>
+    <p style="margin:0 0 10px;">Over the last <strong>${months}</strong>, your commitment, consistency, and hands-on performance stood out. Keep building on this momentum—the future looks bright.</p>
+    <div style="margin:14px auto;padding:12px;background:${THEMES.user.panelBg};border:1px solid ${THEMES.user.panelBorder};border-radius:8px;max-width:420px;text-align:left;">
+      <p style="margin:0;line-height:1.7;">
+        <strong>Programme:</strong> ${course}<br/>
+        <strong>Duration:</strong> ${months}<br/>
+        <strong>Issued on:</strong> ${issuedOn}
+      </p>
+    </div>
+    <p style="margin:0 0 10px;">Your official certificate is <strong>attached to this email</strong> for download and printing.</p>
+    <p style="margin:0;">Congratulations once again from all of us at ${APP_NAME}.</p>
+  `,
+    "user"
+  );
+
 export const certificateHtml = ({
   recipientName,
-  recipientEmail,
-  recipientPhone = "",
   course,
   months,
   issuedOn,
@@ -201,28 +228,39 @@ export const certificateHtml = ({
 }: CertParams) => {
   const t = MIXED_CERT_THEME;
   const logo = logoUrl || COMPANY_LOGO;
+  const nameUpper = (recipientName || "").toUpperCase();
+
   return `
   <div style="font-family:'Inter',-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:${t.bg};padding:24px;max-width:820px;margin:0 auto;color:${t.text};">
     <div style="background:#ffffff;border:1px solid ${t.panelBorder};border-radius:16px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.06);">
       <div style="text-align:center;margin-bottom:6px;">
         <img src="${logo}" alt="${APP_NAME}" height="56" style="height:56px;"/>
       </div>
+
       <div style="text-align:center;">
         <div style="color:${t.heading};font-size:26px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Certificate of Completion</div>
         <div style="display:inline-block;margin:8px 0 12px;padding:8px 14px;border-radius:999px;background:${t.panelBg};border:1px dashed ${t.dashedBorder};color:${t.heading};font-weight:600;">Awarded to</div>
-        <div style="font-size:30px;font-weight:900;margin:4px 0 2px;">${recipientName}</div>
-        <div style="opacity:.75;font-size:13px;">${recipientEmail}${recipientPhone ? " • " + recipientPhone : ""}</div>
+        <div style="font-size:30px;font-weight:900;margin:4px 0 2px;letter-spacing:.5px;">${nameUpper}</div>
       </div>
+
+      <p style="margin:16px auto 8px;max-width:640px;line-height:1.7;text-align:center;color:${t.text};">
+        This certificate is presented to <strong>${nameUpper}</strong> in recognition of the successful completion of the
+        <strong>${course}</strong> training program. Your dedication, consistency, and practical performance throughout the
+        ${months} duration have been exemplary. Keep pushing forward, your growth and excellence inspire us.
+      </p>
+
       <div style="height:1px;background:${t.panelBorder};margin:20px 0;"></div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div style="padding:10px 14px;border-radius:10px;background:${t.panelBg};border:1px solid ${t.panelBorder};font-weight:600;">Course: <span style="color:${t.accent};">${course}</span></div>
         <div style="padding:10px 14px;border-radius:10px;background:${t.panelBg};border:1px solid ${t.panelBorder};font-weight:600;">Duration: <span style="color:${t.accent};">${months}</span></div>
       </div>
+
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:22px;align-items:flex-end;">
         <div>
           <div style="font-weight:800;color:${t.heading};">Mr. Ogaga Otaye</div>
           <div style="opacity:.75;font-size:13px;">Chief Executive Officer</div>
-          <div style="opacity:.75;font-size:13px;">Phone: +2348039375634</div>
+          <div style="opacity:.75;font-size:13px;">ogagaotaye@nexgen.com</div>
         </div>
         <div style="text-align:right;">
           <div style="opacity:.75;font-size:13px;">Issued on</div>
