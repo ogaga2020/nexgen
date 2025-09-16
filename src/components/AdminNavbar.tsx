@@ -55,8 +55,8 @@ export default function AdminNavbar() {
                     <NavButton href="/admin/students" label="Students" />
                     <NavButton href="/admin/media" label="Media" />
                     <NavButton href="/admin/create" label="Admins" />
-                    <NavButton href="/admin/transaction" label="Transaction" />
                     <NavButton href="/admin/certificate" label="Certificate" />
+                    <NavButton href="/admin/transaction" label="Transaction" />
                     <LogoutButton />
                 </div>
 
@@ -84,8 +84,8 @@ export default function AdminNavbar() {
                     <NavButton mobile href="/admin/students" label="Students" />
                     <NavButton mobile href="/admin/media" label="Media" />
                     <NavButton mobile href="/admin/create" label="Admins" />
-                    <NavButton mobile href="/admin/transaction" label="Transaction" />
                     <NavButton mobile href="/admin/certificate" label="Certificate" />
+                    <NavButton mobile href="/admin/transaction" label="Transaction" />
                     <LogoutButton mobile />
                 </div>
             </div>
