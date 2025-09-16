@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-const COOKIE_NAME = process.env.ADMIN_COOKIE_NAME;
-const MAX_AGE_SECONDS = parseInt(process.env.ADMIN_COOKIE_MAX_AGE, 10);
+const DEFAULT_COOKIE_NAME = '__admin_session';
+const DEFAULT_MAX_AGE = 60 * 60 * 24 * 14;
 
 export async function POST(req: NextRequest) {
     try {
@@ -38,28 +38,31 @@ export async function POST(req: NextRequest) {
 
         const secret = process.env.JWT_SECRET;
         if (!secret) {
-            return NextResponse.json({ error: 'Server misconfigured (JWT_SECRET missing)' }, { status: 500 });
+            return NextResponse.json({ error: 'Server misconfigured: JWT_SECRET missing' }, { status: 500 });
         }
+
+        const cookieName = process.env.ADMIN_COOKIE_NAME || DEFAULT_COOKIE_NAME;
+        const maxAge = Number(process.env.ADMIN_COOKIE_MAX_AGE) || DEFAULT_MAX_AGE;
 
         const token = jwt.sign(
             { id: admin._id.toString(), email: admin.email, role: admin.role || 'editor' },
             secret,
-            { expiresIn: `${MAX_AGE_SECONDS}s` }
+            { expiresIn: maxAge }
         );
 
         const res = NextResponse.json({ message: 'Login successful' });
 
-        res.cookies.set(COOKIE_NAME, token, {
+        res.cookies.set(cookieName, token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: MAX_AGE_SECONDS,
+            maxAge,
             path: '/',
         });
 
         return res;
-    } catch (err) {
-        console.error('[ADMIN_LOGIN_ERROR]', err);
+    } catch (err: any) {
+        console.error('[ADMIN_LOGIN_ERROR]', err?.message || err);
         return NextResponse.json({ error: 'Login failed' }, { status: 500 });
     }
 }
