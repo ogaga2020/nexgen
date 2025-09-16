@@ -205,7 +205,7 @@ export const certificateEmailBody = ({
     `
     <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Congratulations, ${(recipientName || "").toUpperCase()}!</h2>
     <p style="margin:0 0 10px;">We’re proud to celebrate your successful completion of the <strong>${course}</strong> training program.</p>
-    <p style="margin:0 0 10px;">Over the last <strong>${months}</strong>, your commitment, consistency, and hands-on performance stood out. Keep building on this momentum—the future looks bright.</p>
+    <p style="margin:0 0 10px;">Over the last <strong>${months}</strong>, your commitment, consistency, and hands-on performance stood out. Keep building on this momentum, the future looks bright.</p>
     <div style="margin:14px auto;padding:12px;background:${THEMES.user.panelBg};border:1px solid ${THEMES.user.panelBorder};border-radius:8px;max-width:420px;text-align:left;">
       <p style="margin:0;line-height:1.7;">
         <strong>Programme:</strong> ${course}<br/>
@@ -218,6 +218,7 @@ export const certificateEmailBody = ({
   `,
     "user"
   );
+
 
 export const certificateHtml = ({
   recipientName,

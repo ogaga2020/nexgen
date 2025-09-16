@@ -38,16 +38,6 @@ export default function CertificatesPage() {
   const [modalSrc, setModalSrc] = useState<string | null>(null);
   const [modalTitle, setModalTitle] = useState<string>("");
 
-  const issuedOn = useMemo(
-    () =>
-      new Date().toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-    []
-  );
-
   const loadIssued = async (search?: string) => {
     setListLoading(true);
     try {
@@ -145,7 +135,7 @@ export default function CertificatesPage() {
     phone?: string;
     course: string;
     months: string;
-    issuedOn: string;
+    issuedOn?: string;
   }) => {
     const search = new URLSearchParams({
       recipientName: p.fullName,
@@ -153,12 +143,17 @@ export default function CertificatesPage() {
       phone: p.phone || "",
       course: p.course,
       months: p.months,
-      issuedOn: p.issuedOn,
+      issuedOn: p.issuedOn || "",
     });
     return `/api/admin/certificate/preview?${search.toString()}`;
   };
 
-  const openPreview = (title: string, src: string) => {
+  const openView = (title: string, src: string) => {
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+    if (isMobile) {
+      window.open(src, "_blank", "noopener,noreferrer");
+      return;
+    }
     setModalTitle(title);
     setModalSrc(src);
     setModalOpen(true);
@@ -175,7 +170,7 @@ export default function CertificatesPage() {
       <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-2xl p-6 mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Certificates</h1>
-          <p className="text-lg mt-1">Preview and issue certificates</p>
+          <p className="text-lg mt-1">Issue and review certificates</p>
         </div>
       </div>
 
@@ -254,25 +249,6 @@ export default function CertificatesPage() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <button
-                onClick={() =>
-                  openPreview(
-                    "Preview Certificate",
-                    buildPreviewUrl({
-                      fullName: found.fullName,
-                      email: found.email,
-                      phone: found.phone,
-                      course: course || "Course Title",
-                      months: months || "3 months",
-                      issuedOn,
-                    })
-                  )
-                }
-                className="rounded-md bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 font-semibold"
-              >
-                Preview
-              </button>
-
-              <button
                 onClick={send}
                 className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 font-semibold disabled:opacity-60"
                 disabled={!confirmOk || loading || alreadyCertified}
@@ -348,50 +324,52 @@ export default function CertificatesPage() {
         </div>
 
         <div className="md:hidden space-y-4">
-          {filteredIssued.map((c) => (
-            <div key={c._id} className="rounded-2xl border bg-white p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-semibold text-base truncate">{c.fullName}</div>
-                  <div className="text-sm text-gray-600 break-words">{c.email}</div>
+          {filteredIssued.map((c) => {
+            const issuedDisplay = new Date(c.issuedOn || c.createdAt).toLocaleString(undefined, {
+              dateStyle: "long",
+              timeStyle: "short",
+            });
+            return (
+              <div key={c._id} className="rounded-2xl border bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-base truncate">{c.fullName}</div>
+                    <div className="text-sm text-gray-600 break-words">{c.email}</div>
+                  </div>
+                  <button
+                    onClick={() =>
+                      openView(
+                        c.fullName,
+                        buildPreviewUrl({
+                          fullName: c.fullName,
+                          email: c.email,
+                          course: c.course,
+                          months: c.months,
+                          issuedOn: issuedDisplay,
+                        })
+                      )
+                    }
+                    className="shrink-0 rounded-md bg-[var(--primary)] text-white px-3 py-1.5 text-sm"
+                  >
+                    View
+                  </button>
                 </div>
-                <button
-                  onClick={() =>
-                    openPreview(
-                      c.fullName,
-                      buildPreviewUrl({
-                        fullName: c.fullName,
-                        email: c.email,
-                        course: c.course,
-                        months: c.months,
-                        issuedOn: c.issuedOn,
-                      })
-                    )
-                  }
-                  className="shrink-0 rounded-md bg-[var(--primary)] text-white px-3 py-1.5 text-sm"
-                >
-                  View
-                </button>
-              </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex px-2.5 py-0.5 rounded-full bg-gray-100 border text-gray-800 text-xs">
-                  {c.course}
-                </span>
-                <span className="inline-flex px-2.5 py-0.5 rounded-full bg-gray-100 border text-gray-800 text-xs">
-                  {c.months}
-                </span>
-              </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex px-2.5 py-0.5 rounded-full bg-gray-100 border text-gray-800 text-xs">
+                    {c.course}
+                  </span>
+                  <span className="inline-flex px-2.5 py-0.5 rounded-full bg-gray-100 border text-gray-800 text-xs">
+                    {c.months}
+                  </span>
+                </div>
 
-              <div className="mt-3 text-xs text-gray-500">
-                Issued •{" "}
-                {new Date(c.issuedOn || c.createdAt).toLocaleString(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
+                <div className="mt-3 text-xs text-gray-500">
+                  Issued • {issuedDisplay}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {!listLoading && filteredIssued.length === 0 && (
             <div className="text-center text-gray-500 py-8">No certificates found.</div>
@@ -412,39 +390,40 @@ export default function CertificatesPage() {
             </thead>
             <tbody>
               {!listLoading &&
-                filteredIssued.map((c) => (
-                  <tr key={c._id} className="border-t hover:bg-gray-50/50">
-                    <td className="px-4 py-2">{c.fullName}</td>
-                    <td className="px-4 py-2">{c.email}</td>
-                    <td className="px-4 py-2">{c.course}</td>
-                    <td className="px-4 py-2">{c.months}</td>
-                    <td className="px-4 py-2">
-                      {new Date(c.issuedOn || c.createdAt).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <button
-                        onClick={() =>
-                          openPreview(
-                            c.fullName,
-                            buildPreviewUrl({
-                              fullName: c.fullName,
-                              email: c.email,
-                              course: c.course,
-                              months: c.months,
-                              issuedOn: c.issuedOn,
-                            })
-                          )
-                        }
-                        className="text-blue-600 hover:underline"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                filteredIssued.map((c) => {
+                  const issuedDisplay = new Date(c.issuedOn || c.createdAt).toLocaleString(undefined, {
+                    dateStyle: "long",
+                    timeStyle: "short",
+                  });
+                  return (
+                    <tr key={c._id} className="border-t hover:bg-gray-50/50">
+                      <td className="px-4 py-2">{c.fullName}</td>
+                      <td className="px-4 py-2">{c.email}</td>
+                      <td className="px-4 py-2">{c.course}</td>
+                      <td className="px-4 py-2">{c.months}</td>
+                      <td className="px-4 py-2">{issuedDisplay}</td>
+                      <td className="px-4 py-2 text-right">
+                        <button
+                          onClick={() =>
+                            openView(
+                              c.fullName,
+                              buildPreviewUrl({
+                                fullName: c.fullName,
+                                email: c.email,
+                                course: c.course,
+                                months: c.months,
+                                issuedOn: issuedDisplay,
+                              })
+                            )
+                          }
+                          className="text-blue-600 hover:underline"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               {listLoading && filteredIssued.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
@@ -474,7 +453,7 @@ export default function CertificatesPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 border-b flex items-center justify-between">
-              <div className="font-semibold">{modalTitle}</div>
+              <div className="font-semibold truncate pr-4">{modalTitle}</div>
               <button
                 onClick={() => setModalOpen(false)}
                 className="rounded-md border px-3 py-1.5 hover:bg-gray-50"
@@ -487,7 +466,7 @@ export default function CertificatesPage() {
                 <iframe
                   src={modalSrc}
                   className="w-full h-[calc(100%-49px)]"
-                  title="Preview"
+                  title="Certificate"
                 />
               ) : null}
             </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendMail } from "@/lib/email";
-import { certificateHtml } from "@/lib/templates";
+import { certificateHtml, certificateEmailBody } from "@/lib/templates";
 import { htmlToPdfBuffer } from "@/lib/pdf";
 import { EMAIL_SUBJECTS } from "@/utils/constants";
 import { connectDB } from "@/lib/db";
@@ -16,29 +16,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
 
-    const issuedOn = new Date().toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const now = new Date();
+    const issuedOnISO = now.toISOString();
+    const issuedOnDisplay = now.toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" });
 
-    const html = certificateHtml({
+    const attachmentHtml = certificateHtml({
       recipientName,
       recipientEmail: email,
       recipientPhone: phone || "",
       course,
       months,
-      issuedOn,
+      issuedOn: issuedOnDisplay,
       logoUrl,
     });
 
-    const pdfUint8Array = await htmlToPdfBuffer(html);
+    const emailBodyHtml = certificateEmailBody({
+      recipientName,
+      course,
+      months,
+      issuedOn: issuedOnDisplay,
+    });
+
+    const pdfUint8Array = await htmlToPdfBuffer(attachmentHtml);
     const pdf = Buffer.from(pdfUint8Array);
 
     await sendMail({
       to: email,
       subject: `${EMAIL_SUBJECTS.CERTIFICATE_ISSUED} – ${course}`,
-      html,
+      html: emailBodyHtml,
       attachments: [
         {
           filename: "NexGen-Certificate.pdf",
@@ -54,7 +59,7 @@ export async function POST(req: NextRequest) {
       email,
       course,
       months,
-      issuedOn,
+      issuedOn: issuedOnISO,
     });
 
     return NextResponse.json({ ok: true });

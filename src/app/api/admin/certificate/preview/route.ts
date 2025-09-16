@@ -13,7 +13,9 @@ export async function GET(req: NextRequest) {
     recipientPhone: url.searchParams.get("phone") || "",
     course: url.searchParams.get("course") || "Course Title",
     months: url.searchParams.get("months") || "3 months",
-    issuedOn: url.searchParams.get("issuedOn") || new Date().toDateString(),
+    issuedOn:
+      url.searchParams.get("issuedOn") ||
+      new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" }),
     logoUrl: url.searchParams.get("logoUrl") || undefined,
   });
 

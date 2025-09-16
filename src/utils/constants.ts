@@ -16,7 +16,7 @@ export const APP_NAME = 'NexGen Flow and Power';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || '';
 
-export const COMPANY_LOGO = `${BASE_URL}/logo.png`;
+export const COMPANY_LOGO = `${BASE_URL}/logo.jpg`;
 
 const ADMIN_LIST = (process.env.ADMIN_EMAIL || '')
     .split(',')
