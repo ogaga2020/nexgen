@@ -199,7 +199,7 @@ export default function MediaUploadPage() {
     return (
         <>
             <div className="max-w-7xl mx-auto py-10 px-4">
-                <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-2xl p-6 md:p-8 mb-8 shadow">
+                <div className="bg-gradient-to-r from-green-800 to-green-500 text-white rounded-md p-6 md:p-8 mb-8 shadow">
                     <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Media Library</h1>
                     <p className="text-base md:text-lg mt-1 opacity-90">Upload and manage gallery assets</p>
                 </div>

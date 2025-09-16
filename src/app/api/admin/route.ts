@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
             email,
             phone,
             password: hashed,
-            role: 'superadmin',
+            role: 'editor',
         });
 
         logger.info({ route: '/api/admin', method: 'POST', adminId: String(admin._id), email });

@@ -3,12 +3,12 @@ import Admin from '@/models/Admin';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { COOKIE_NAME } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const DEFAULT_COOKIE_NAME = '__admin_session';
 const DEFAULT_MAX_AGE = 60 * 60 * 24 * 14;
 
 export async function POST(req: NextRequest) {
@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Server misconfigured: JWT_SECRET missing' }, { status: 500 });
         }
 
-        const cookieName = process.env.ADMIN_COOKIE_NAME || DEFAULT_COOKIE_NAME;
         const maxAge = Number(process.env.ADMIN_COOKIE_MAX_AGE) || DEFAULT_MAX_AGE;
 
         const token = jwt.sign(
@@ -52,7 +51,7 @@ export async function POST(req: NextRequest) {
 
         const res = NextResponse.json({ message: 'Login successful' });
 
-        res.cookies.set(cookieName, token, {
+        res.cookies.set(COOKIE_NAME, token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
@@ -61,8 +60,7 @@ export async function POST(req: NextRequest) {
         });
 
         return res;
-    } catch (err: any) {
-        console.error('[ADMIN_LOGIN_ERROR]', err?.message || err);
+    } catch {
         return NextResponse.json({ error: 'Login failed' }, { status: 500 });
     }
 }
