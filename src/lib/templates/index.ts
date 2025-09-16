@@ -39,6 +39,18 @@ const THEMES: Record<Role, Theme> = {
   },
 };
 
+const MIXED_CERT_THEME: Theme = {
+  bg: "#f7fbff",
+  text: "#0b3b2e",
+  heading: "#0f766e",
+  panelBg: "#e9f7ff",
+  panelBorder: "#c4f1de",
+  accent: "#0ea5e9",
+  dashedBorder: "#10b981",
+  ctaBg: "#0f766e",
+  ctaText: "#ffffff",
+};
+
 const wrapThemed = (content: string, role: Role = "user") => {
   const t = THEMES[role];
   return `
@@ -63,6 +75,7 @@ const btn = (href: string, label: string, role: Role = "user") => {
 `;
 };
 
+
 export const adminAccountCreated = (name: string, email: string, phone: string) =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Admin Account Created</h2>
@@ -76,6 +89,7 @@ export const adminAccountCreated = (name: string, email: string, phone: string) 
     ${btn(`${BASE_URL}/admin`, "Go to Admin Login", "admin")}
   `, "admin");
 
+
 export const sendOtpTemplate = (otp: string) =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Verification Code</h2>
@@ -86,6 +100,7 @@ export const sendOtpTemplate = (otp: string) =>
     <p style="margin:0;">This code expires in <strong>10 minutes</strong>.</p>
   `, "admin");
 
+
 export const resetSuccessTemplate = () =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Password Reset Successful</h2>
@@ -93,6 +108,7 @@ export const resetSuccessTemplate = () =>
     ${btn(`${BASE_URL}/admin`, "Sign In", "admin")}
     <p style="margin-top:16px;font-size:12px;color:#64748b;">If you did not perform this action, please contact support immediately.</p>
   `, "admin");
+
 
 export const paymentRecordedTemplate = (
   student: string,
@@ -113,6 +129,7 @@ export const paymentRecordedTemplate = (
       </p>
     </div>
   `, role);
+
 
 export const welcomeAfterVerificationTemplate = (
   name: string,
@@ -136,6 +153,7 @@ export const welcomeAfterVerificationTemplate = (
     <p style="margin:0;">We’re excited to have you on board!</p>
   `, "user");
 
+
 export const twoWeeksToFinishReminderTemplate = (name: string, program: string, dueStr: string) =>
   wrapThemed(`
     <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Balance Due in 2 Weeks</h2>
@@ -144,12 +162,14 @@ export const twoWeeksToFinishReminderTemplate = (name: string, program: string, 
     <p style="margin:0;">If you’ve already paid, kindly ignore this message.</p>
   `, "user");
 
+
 export const adminTwoWeeksReminderTemplate = (student: string, program: string, dueStr: string) =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Student Balance Due (2 Weeks)</h2>
     <p style="margin:0 0 10px;"><strong>${student}</strong> in <strong>${program}</strong> has a balance due by <strong>${dueStr}</strong>.</p>
     <p style="margin:0;">Please follow up and update records after confirmation.</p>
   `, "admin");
+
 
 export const fullyPaidCongratulationsTemplate = (name: string, program: string) =>
   wrapThemed(`
@@ -158,3 +178,58 @@ export const fullyPaidCongratulationsTemplate = (name: string, program: string) 
       <p style="margin:0 0 10px;">Your fees for <strong>${program}</strong> have been fully paid. 🎉</p>
       <p style="margin:0;">Thank you for completing your payments. We wish you a successful training completion and graduation.</p>
   `, "user");
+
+
+type CertParams = {
+  recipientName: string;
+  recipientEmail: string;
+  recipientPhone?: string;
+  course: string;
+  months: string;
+  issuedOn: string;
+  logoUrl?: string;
+};
+
+export const certificateHtml = ({
+  recipientName,
+  recipientEmail,
+  recipientPhone = "",
+  course,
+  months,
+  issuedOn,
+  logoUrl,
+}: CertParams) => {
+  const t = MIXED_CERT_THEME;
+  const logo = logoUrl || COMPANY_LOGO;
+  return `
+  <div style="font-family:'Inter',-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:${t.bg};padding:24px;max-width:820px;margin:0 auto;color:${t.text};">
+    <div style="background:#ffffff;border:1px solid ${t.panelBorder};border-radius:16px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.06);">
+      <div style="text-align:center;margin-bottom:6px;">
+        <img src="${logo}" alt="${APP_NAME}" height="56" style="height:56px;"/>
+      </div>
+      <div style="text-align:center;">
+        <div style="color:${t.heading};font-size:26px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Certificate of Completion</div>
+        <div style="display:inline-block;margin:8px 0 12px;padding:8px 14px;border-radius:999px;background:${t.panelBg};border:1px dashed ${t.dashedBorder};color:${t.heading};font-weight:600;">Awarded to</div>
+        <div style="font-size:30px;font-weight:900;margin:4px 0 2px;">${recipientName}</div>
+        <div style="opacity:.75;font-size:13px;">${recipientEmail}${recipientPhone ? " • " + recipientPhone : ""}</div>
+      </div>
+      <div style="height:1px;background:${t.panelBorder};margin:20px 0;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="padding:10px 14px;border-radius:10px;background:${t.panelBg};border:1px solid ${t.panelBorder};font-weight:600;">Course: <span style="color:${t.accent};">${course}</span></div>
+        <div style="padding:10px 14px;border-radius:10px;background:${t.panelBg};border:1px solid ${t.panelBorder};font-weight:600;">Duration: <span style="color:${t.accent};">${months}</span></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-top:22px;align-items:flex-end;">
+        <div>
+          <div style="font-weight:800;color:${t.heading};">Mr. Ogaga Otaye</div>
+          <div style="opacity:.75;font-size:13px;">Chief Executive Officer</div>
+          <div style="opacity:.75;font-size:13px;">Phone: +2348039375634</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="opacity:.75;font-size:13px;">Issued on</div>
+          <div style="padding:8px 12px;border-radius:10px;background:${t.panelBg};border:1px solid ${t.panelBorder};font-weight:600;">${issuedOn}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+};

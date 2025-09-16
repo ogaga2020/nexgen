@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type Mail from "nodemailer/lib/mailer";
 import logger from "@/lib/logger";
 import { MAIN_ADMIN_EMAIL, EMAIL_FROM_NAME } from "@/utils/constants";
 
@@ -14,10 +15,12 @@ export async function sendMail({
     to,
     subject,
     html,
+    attachments,
 }: {
     to: string | string[];
     subject: string;
     html: string;
+    attachments?: Mail.Attachment[];
 }) {
     const toField = Array.isArray(to) ? to.join(",") : to;
     try {
@@ -26,6 +29,7 @@ export async function sendMail({
             to: toField,
             subject,
             html,
+            ...(attachments && { attachments }),
         });
         logger.info({ route: "lib/email.sendMail", to: toField, subject, ok: true });
     } catch (error: any) {

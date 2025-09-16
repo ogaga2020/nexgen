@@ -7,6 +7,7 @@ export const EMAIL_SUBJECTS = {
     FULLY_PAID_CONGRATS: "Congrats! You're on your way to graduation",
     INSTALLMENT_REMINDER: 'Balance Due in 2 Weeks',
     INSTALLMENT_REMINDER_ADMIN: 'Student Balance Due Soon',
+    CERTIFICATE_ISSUED: 'Your NexGen Certificate',
 };
 
 export const OTP_EXPIRY_MINUTES = 10;
