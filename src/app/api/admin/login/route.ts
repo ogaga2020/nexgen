@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const COOKIE_NAME = process.env.ADMIN_COOKIE_NAME;
 const MAX_AGE_SECONDS = parseInt(process.env.ADMIN_COOKIE_MAX_AGE, 10);
 
