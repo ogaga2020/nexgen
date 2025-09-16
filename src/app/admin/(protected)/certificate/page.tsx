@@ -59,13 +59,13 @@ export default function CertificatesPage() {
   }, []);
 
   const alreadyCertified = useMemo(() => {
-    if (!found) return false;
-    return issued.some(
-      (c) =>
-        c.email.toLowerCase() === found.email.toLowerCase() &&
-        c.course.toLowerCase() === (course || "").toLowerCase()
+    if (!found || !course || !months) return false;
+    return issued.some((c) =>
+      c.email.toLowerCase() === found.email.toLowerCase() &&
+      c.course.toLowerCase() === (course || "").toLowerCase() &&
+      (c.months || "").toLowerCase() === (months || "").toLowerCase()
     );
-  }, [issued, found, course]);
+  }, [issued, found, course, months]);
 
   const lookup = async () => {
     if (!email) return;
