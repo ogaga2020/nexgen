@@ -23,8 +23,23 @@ export async function GET(req: NextRequest) {
 
     const list = await Certificate.find(filter).sort({ createdAt: -1 }).limit(500).lean();
 
-    return NextResponse.json(
-      (list || []).map((c) => ({
+    const resp = (list || []).map((c: any) => {
+      const issuedRaw = c.issuedOn;
+      let issuedAt: Date | null = null;
+
+      if (issuedRaw) {
+        const d = new Date(issuedRaw);
+        if (!isNaN(d.getTime())) {
+          if (typeof issuedRaw === "string" && !/(:|T)/.test(issuedRaw)) {
+            issuedAt = new Date(c.createdAt);
+          } else {
+            issuedAt = d;
+          }
+        }
+      }
+      if (!issuedAt) issuedAt = new Date(c.createdAt);
+
+      return {
         _id: String(c._id),
         fullName: c.fullName,
         email: c.email,
@@ -32,8 +47,11 @@ export async function GET(req: NextRequest) {
         months: c.months,
         issuedOn: c.issuedOn,
         createdAt: c.createdAt,
-      }))
-    );
+        issuedAt: issuedAt.toISOString(),
+      };
+    });
+
+    return NextResponse.json(resp);
   } catch {
     return NextResponse.json({ error: "failed to load" }, { status: 500 });
   }

@@ -20,6 +20,7 @@ type IssuedCert = {
   months: string;
   issuedOn: string;
   createdAt: string;
+  issuedAt?: string;
 };
 
 export default function CertificatesPage() {
@@ -149,7 +150,9 @@ export default function CertificatesPage() {
   };
 
   const openView = (title: string, src: string) => {
-    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+    const isMobile =
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches;
     if (isMobile) {
       window.open(src, "_blank", "noopener,noreferrer");
       return;
@@ -162,8 +165,18 @@ export default function CertificatesPage() {
   const filteredIssued = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return issued;
-    return issued.filter((c) => c.fullName.toLowerCase().includes(term) || c.email.toLowerCase().includes(term));
+    return issued.filter(
+      (c) =>
+        c.fullName.toLowerCase().includes(term) ||
+        c.email.toLowerCase().includes(term)
+    );
   }, [issued, q]);
+
+  const formatIssued = (c: IssuedCert) =>
+    new Date(c.issuedAt || c.issuedOn || c.createdAt).toLocaleString(
+      undefined,
+      { dateStyle: "long", timeStyle: "short" }
+    );
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4">
@@ -325,10 +338,7 @@ export default function CertificatesPage() {
 
         <div className="md:hidden space-y-4">
           {filteredIssued.map((c) => {
-            const issuedDisplay = new Date(c.issuedOn || c.createdAt).toLocaleString(undefined, {
-              dateStyle: "long",
-              timeStyle: "short",
-            });
+            const issuedDisplay = formatIssued(c);
             return (
               <div key={c._id} className="rounded-2xl border bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
@@ -364,9 +374,7 @@ export default function CertificatesPage() {
                   </span>
                 </div>
 
-                <div className="mt-3 text-xs text-gray-500">
-                  Issued • {issuedDisplay}
-                </div>
+                <div className="mt-3 text-xs text-gray-500">Issued • {issuedDisplay}</div>
               </div>
             );
           })}
@@ -391,10 +399,7 @@ export default function CertificatesPage() {
             <tbody>
               {!listLoading &&
                 filteredIssued.map((c) => {
-                  const issuedDisplay = new Date(c.issuedOn || c.createdAt).toLocaleString(undefined, {
-                    dateStyle: "long",
-                    timeStyle: "short",
-                  });
+                  const issuedDisplay = formatIssued(c);
                   return (
                     <tr key={c._id} className="border-t hover:bg-gray-50/50">
                       <td className="px-4 py-2">{c.fullName}</td>
