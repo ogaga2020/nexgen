@@ -71,6 +71,8 @@ export default function RegisterPage() {
 
     const [uploadingUserPhoto, setUploadingUserPhoto] = useState(false);
     const [uploadingGuarantorPhoto, setUploadingGuarantorPhoto] = useState(false);
+    const [userFileLabel, setUserFileLabel] = useState('');
+    const [guarantorFileLabel, setGuarantorFileLabel] = useState('');
 
     const passportRef = useRef<HTMLInputElement>(null);
     const guarantorRef = useRef<HTMLInputElement>(null);
@@ -78,17 +80,24 @@ export default function RegisterPage() {
     const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET;
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'photo' | 'guarantor.photo') => {
+    const handleUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        field: 'photo' | 'guarantor.photo',
+        setLabel: React.Dispatch<React.SetStateAction<string>>
+    ) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        setLabel(file.name);
         if (file.size > 3 * 1024 * 1024) {
             notifyError('Image too large. Max 3MB.');
             e.currentTarget.value = '';
+            setLabel('');
             return;
         }
         if (!CLOUD || !PRESET) {
             notifyError('Cloudinary config missing.');
             e.currentTarget.value = '';
+            setLabel('');
             return;
         }
         const formData = new FormData();
@@ -104,8 +113,13 @@ export default function RegisterPage() {
                 const msg = payload?.error?.message || res.statusText || 'Upload failed';
                 notifyError(`Upload failed: ${msg}`);
                 e.currentTarget.value = '';
+                setLabel('');
                 return;
             }
+            const nameFromCloud = payload?.original_filename
+                ? `${payload.original_filename}${payload?.format ? '.' + payload.format : ''}`
+                : file.name;
+            setLabel(nameFromCloud);
             setValue(field, payload.secure_url, { shouldValidate: true, shouldDirty: true });
         } finally {
             setBusy(false);
@@ -127,23 +141,19 @@ export default function RegisterPage() {
             notifyError('Please upload the guarantor photo.');
             return;
         }
-
         try {
             const tuition = TUITION_BY_DURATION[data.trainingDuration as 4 | 8 | 12];
             const sixty = Math.round(tuition * 0.6);
             const forty = tuition - sixty;
-
             const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...data, tuition, firstPayment: sixty, balance: forty, status: 'pending' }),
             });
-
             if (!res.ok) {
                 const msg = await res.text();
                 throw new Error(msg || 'Registration failed');
             }
-
             const message =
                 `Hello NexGen,\n` +
                 `My name is ${data.fullName}.\n` +
@@ -153,16 +163,15 @@ export default function RegisterPage() {
                 `Email: ${data.email}\n` +
                 `Phone: ${data.phone}\n\n` +
                 `Please send your bank/payment details so I can make the first payment.`;
-
             const wa = `https://wa.me/${BUSINESS_E164}?text=${encodeURIComponent(message)}`;
             const win = window.open(wa, '_blank');
             if (!win) notifyError('Popup blocked. Please allow popups or tap this button again.');
-
             passportRef.current && (passportRef.current.value = '');
             guarantorRef.current && (guarantorRef.current.value = '');
+            setUserFileLabel('');
+            setGuarantorFileLabel('');
             setValue('photo', '', { shouldDirty: false });
             setValue('guarantor.photo', '', { shouldDirty: false });
-
             reset({
                 fullName: '',
                 email: '',
@@ -218,7 +227,6 @@ export default function RegisterPage() {
                 <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl" />
             </section>
-
             <div className="bg-white">
                 <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
                     <div className="grid gap-6 md:grid-cols-3">
@@ -228,7 +236,6 @@ export default function RegisterPage() {
                         >
                             <h2 className="text-xl font-semibold text-gray-900">Your Details</h2>
                             <p className="mt-1 text-sm text-gray-600">We’ll use this to set up your profile and enrollment.</p>
-
                             <div className="mt-6 grid gap-6 md:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block font-medium text-gray-700">Full Name</label>
@@ -255,16 +262,20 @@ export default function RegisterPage() {
                                                 accept="image/*"
                                                 ref={passportRef}
                                                 disabled={uploadingUserPhoto || isSubmitting}
-                                                onChange={(e) => handleUpload(e, 'photo')}
+                                                onChange={(e) => handleUpload(e, 'photo', setUserFileLabel)}
                                                 className="hidden"
                                             />
                                         </label>
                                         <span className="text-xs text-gray-500">Max 3MB • JPG/PNG</span>
                                     </div>
+                                    {userFileLabel && (
+                                        <p className="mt-1 text-xs text-gray-600 truncate" title={userFileLabel} aria-live="polite">
+                                            {userFileLabel}
+                                        </p>
+                                    )}
                                     {errors.photo && <p className="mt-1 text-sm text-danger">{errors.photo.message}</p>}
                                 </div>
                             </div>
-
                             <div className="mt-8 grid gap-6 md:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block font-medium text-gray-700">Training Type</label>
@@ -289,11 +300,9 @@ export default function RegisterPage() {
                                     )}
                                 </div>
                             </div>
-
                             <div className="mt-10 border-t pt-6">
                                 <h3 className="text-lg font-semibold text-gray-900">Guarantor Information</h3>
                                 <p className="mt-1 text-sm text-gray-600">A responsible contact to validate your application.</p>
-
                                 <div className="mt-6 grid gap-6 md:grid-cols-2">
                                     <div>
                                         <label className="mb-1 block font-medium text-gray-700">Guarantor Full Name</label>
@@ -326,19 +335,23 @@ export default function RegisterPage() {
                                                     accept="image/*"
                                                     ref={guarantorRef}
                                                     disabled={uploadingGuarantorPhoto || isSubmitting}
-                                                    onChange={(e) => handleUpload(e, 'guarantor.photo')}
+                                                    onChange={(e) => handleUpload(e, 'guarantor.photo', setGuarantorFileLabel)}
                                                     className="hidden"
                                                 />
                                             </label>
                                             <span className="text-xs text-gray-500">Max 3MB • JPG/PNG</span>
                                         </div>
+                                        {guarantorFileLabel && (
+                                            <p className="mt-1 text-xs text-gray-600 truncate" title={guarantorFileLabel} aria-live="polite">
+                                                {guarantorFileLabel}
+                                            </p>
+                                        )}
                                         {errors.guarantor?.photo && (
                                             <p className="mt-1 text-sm text-danger">{errors.guarantor.photo.message}</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
-
                             <div className="mt-8">
                                 <button
                                     type="submit"
@@ -347,20 +360,14 @@ export default function RegisterPage() {
                                 >
                                     {isSubmitting ? 'Submitting…' : 'Submit Registration'}
                                 </button>
-                                <p className="mt-2 text-center text-xs text-gray-500">
-                                    Your details will be verified by our Admin after payment confirmation.
-                                </p>
+                                <p className="mt-2 text-center text-xs text-gray-500">Your details will be verified by our Admin after payment confirmation.</p>
                             </div>
                         </form>
-
                         <aside className="md:sticky md:top-6 h-fit rounded-2xl border bg-white p-6 shadow-sm ring-1 ring-black/10">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold text-gray-900">Tuition Summary</h3>
-                                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
-                                    60/40 plan
-                                </span>
+                                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">60/40 plan</span>
                             </div>
-
                             <div className="mt-4 space-y-3 text-sm">
                                 <div className="flex items-center justify-between">
                                     <span className="text-gray-600">Duration</span>
@@ -379,7 +386,6 @@ export default function RegisterPage() {
                                     <span className="font-medium text-gray-900">{forty ? fmt(forty) : '-'}</span>
                                 </div>
                             </div>
-
                             <div className="mt-6 rounded-xl bg-gray-50 p-4 text-sm text-gray-700 ring-1 ring-gray-100">
                                 <p className="font-medium text-gray-900">What happens next?</p>
                                 <ul className="mt-2 list-disc space-y-1 pl-5">
