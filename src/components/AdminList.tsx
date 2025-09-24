@@ -1,3 +1,4 @@
+// filename: src/app/admin/_components/AdminList.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ type AdminRow = {
   fullName: string;
   email: string;
   phone: string;
+  role: 'superadmin' | 'editor';
   createdAt: string;
   lastLoggedIn?: string | null;
 };
@@ -45,6 +47,18 @@ export default function AdminList() {
   const formatDateTime = (v?: string | null) =>
     v ? new Date(v).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
 
+  const RoleBadge = ({ role }: { role: AdminRow['role'] }) => (
+    <span
+      className={
+        role === 'superadmin'
+          ? 'inline-block text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700'
+          : 'inline-block text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700'
+      }
+    >
+      {role}
+    </span>
+  );
+
   return (
     <div className="bg-white border rounded-lg shadow-sm">
       <div className="p-4 border-b flex items-center justify-between">
@@ -66,6 +80,7 @@ export default function AdminList() {
               <th className="px-4 py-3 text-left">Name</th>
               <th className="px-4 py-3 text-left">Email</th>
               <th className="px-4 py-3 text-left">Phone</th>
+              <th className="px-4 py-3 text-left">Role</th>
               <th className="px-4 py-3 text-left">Last Login</th>
             </tr>
           </thead>
@@ -76,12 +91,13 @@ export default function AdminList() {
                 <td className="px-4 py-3">{a.fullName}</td>
                 <td className="px-4 py-3">{a.email}</td>
                 <td className="px-4 py-3">{a.phone}</td>
+                <td className="px-4 py-3"><RoleBadge role={a.role} /></td>
                 <td className="px-4 py-3">{formatDateTime(a.lastLoggedIn || null)}</td>
               </tr>
             ))}
             {admins.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-gray-500">
+                <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
                   No admins yet.
                 </td>
               </tr>
@@ -96,7 +112,10 @@ export default function AdminList() {
         )}
         {admins.map((a) => (
           <div key={a._id} className="p-4">
-            <div className="font-semibold text-gray-900">{a.fullName}</div>
+            <div className="flex items-center gap-2">
+              <div className="font-semibold text-gray-900">{a.fullName}</div>
+              <RoleBadge role={a.role} />
+            </div>
             <div className="mt-2 text-sm text-gray-700 break-words">{a.email}</div>
             <div className="text-sm text-gray-700">{a.phone}</div>
             <div className="mt-2 text-xs text-gray-500">
