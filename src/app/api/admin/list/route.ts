@@ -1,4 +1,3 @@
-// filename: src/app/api/admin/list/route.ts
 import { NextResponse } from 'next/server';
 import Admin from '@/models/Admin';
 import { connectDB } from '@/lib/db';
