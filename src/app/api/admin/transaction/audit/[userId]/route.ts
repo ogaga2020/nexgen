@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
 import Transaction from '@/models/Transaction';
@@ -12,9 +12,7 @@ const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
   12: 700_000
 };
 
-type RouteContext = { params: { userId: string } };
-
-export async function GET(_req: NextRequest, { params }: RouteContext) {
+export async function GET(_req: Request, { params }: { params: { userId: string } }) {
   try {
     await connectDB();
 
