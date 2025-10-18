@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
 import Transaction from '@/models/Transaction';
@@ -10,9 +10,11 @@ const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
   4: 250_000,
   8: 450_000,
   12: 700_000
-}
+};
 
-export async function GET(_: Request, { params }: { params: { userId: string } }) {
+type RouteContext = { params: { userId: string } };
+
+export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     await connectDB();
 
@@ -48,7 +50,7 @@ export async function GET(_: Request, { params }: { params: { userId: string } }
         tuition,
         expectedInitial,
         expectedBalance,
-        paidTotal,
+        paidTotal
       },
       initial: initial
         ? {
@@ -57,7 +59,7 @@ export async function GET(_: Request, { params }: { params: { userId: string } }
           expected: expectedInitial,
           status: initial.status,
           reference: initial.reference,
-          date: initial.createdAt,
+          date: initial.createdAt
         }
         : null,
       balance: balance
@@ -67,9 +69,9 @@ export async function GET(_: Request, { params }: { params: { userId: string } }
           expected: expectedBalance,
           status: balance.status,
           reference: balance.reference,
-          date: balance.createdAt,
+          date: balance.createdAt
         }
-        : null,
+        : null
     });
   } catch {
     return NextResponse.json({ error: 'Failed to load audit' }, { status: 500 });
