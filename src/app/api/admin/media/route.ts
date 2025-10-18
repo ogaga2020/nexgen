@@ -71,7 +71,7 @@ export async function POST(req: Request) {
             const buffer = Buffer.from(await f.arrayBuffer());
             return await new Promise<CloudinaryUploadResult>((resolve, reject) => {
                 const stream = cloudinary.uploader.upload_stream(
-                    { folder: `nextgen/${category}`, resource_type: 'auto', use_filename: true },
+                    { folder: `enterprise/${category}`, resource_type: 'auto', use_filename: true },
                     (error, result) => {
                         if (error || !result) return reject(error ?? new Error('Upload failed'));
                         resolve(result as CloudinaryUploadResult);

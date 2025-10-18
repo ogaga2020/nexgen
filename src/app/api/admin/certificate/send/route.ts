@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       html: emailBodyHtml,
       attachments: [
         {
-          filename: "NexGen-Certificate.pdf",
+          filename: "Ogaga-Enterprise_Certificate.pdf",
           content: pdf,
           contentType: "application/pdf",
         },

@@ -134,7 +134,7 @@ export async function POST(req: Request) {
         await doc.save();
 
         const lines = [
-            `Hello NexGen Admin,`,
+            `Hello Ogaga-Enterprise Admin,`,
             ``,
             `My name is ${fullName}.`,
             `I just submitted my registration for training.`,

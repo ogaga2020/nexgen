@@ -36,7 +36,7 @@ export async function GET() {
 
         for (const category of categories) {
             const result = (await cloudinary.search
-                .expression(`folder:nextgen/${category}`)
+                .expression(`folder:enterprise/${category}`)
                 .sort_by('created_at', 'desc')
                 .with_field('context')
                 .max_results(50)
