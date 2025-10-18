@@ -69,7 +69,7 @@ export default function AdminEntryPage() {
     return (
         <>
             <section className="bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white py-16 px-6 text-center">
-                <h1 className="text-4xl md:text-5xl font-bold mb-2">NexGen Admin</h1>
+                <h1 className="text-4xl md:text-5xl font-bold mb-2">Admin Panel</h1>
                 <p className="text-lg md:text-xl opacity-90">
                     {showCreate ? 'Create the first admin account' : 'Sign in to continue'}
                 </p>

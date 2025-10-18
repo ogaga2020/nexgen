@@ -25,7 +25,7 @@ export default function Navbar() {
         <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur shadow-md">
             <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
                 <Link href="/" className="text-xl font-bold text-blue-900">
-                    NexGen
+                    Ogaga-Enterprise
                 </Link>
 
                 <button
@@ -47,7 +47,7 @@ export default function Navbar() {
                     {navLinks.map((link) => (
                         <Link
                             key={link.href}
-                            href={link.href}
+                            href={link.href as any}
                             className={`transition hover:text-blue-800 ${isActive(link.href) ? 'text-blue-800 font-semibold' : 'text-gray-700'
                                 }`}
                         >
@@ -62,7 +62,7 @@ export default function Navbar() {
                     {navLinks.map((link) => (
                         <Link
                             key={link.href}
-                            href={link.href}
+                            href={link.href as any}
                             className={`block rounded px-2 py-2 transition ${isActive(link.href)
                                 ? 'bg-blue-50 text-blue-800 font-semibold'
                                 : 'text-gray-700 hover:bg-gray-50'

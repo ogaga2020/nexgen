@@ -13,7 +13,7 @@ export default function AboutPage() {
                             Building skilled talent for tomorrow
                         </span>
                         <h1 className="mt-5 text-4xl md:text-5xl font-extrabold tracking-tight text-white">
-                            About <span className="text-blue-300">NexGen</span>
+                            About <span className="text-blue-300">Ogaga-Enterprise</span>
                         </h1>
                         <p className="mt-4 md:mt-6 text-lg md:text-xl text-white/90 leading-relaxed">
                             We don’t just train people, we shape a workforce that powers homes,
@@ -47,7 +47,7 @@ export default function AboutPage() {
                     <div className="order-2 md:order-1">
                         <h2 className="text-3xl md:text-4xl font-bold text-[var(--primary)]">Who We Are</h2>
                         <p className="mt-4 text-gray-700 leading-relaxed">
-                            <span className="font-semibold">NexGen Flow &amp; Power</span> is a technical training hub dedicated to equipping
+                            <span className="font-semibold">Ogaga-Enterprise</span> is a technical training hub dedicated to equipping
                             individuals with in-demand skills in <span className="font-semibold">Electrical Installation</span>,{' '}
                             <span className="font-semibold">Plumbing Systems</span>, and{' '}
                             <span className="font-semibold">Solar Energy Technologies</span>. With years of hands-on industry experience, our
@@ -73,7 +73,7 @@ export default function AboutPage() {
                         <div className="relative mx-auto max-w-xl overflow-hidden rounded-2xl ring-1 ring-black/10 shadow-lg">
                             <Image
                                 src="https://t3.ftcdn.net/jpg/01/05/11/04/360_F_105110489_PQGeKf7q24LfRJMt3c1iNaLmeSeFZZHo.jpg"
-                                alt="NexGen training and practice"
+                                alt="Ogaga-Enterprise training and practice"
                                 width={1200}
                                 height={800}
                                 className="object-cover"
@@ -181,7 +181,7 @@ export default function AboutPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-blue-600" />
 
                 <div className="relative max-w-6xl mx-auto px-6 py-16 md:py-20 text-center text-white">
-                    <h2 className="text-3xl md:text-4xl font-extrabold">Start Your Journey with NexGen</h2>
+                    <h2 className="text-3xl md:text-4xl font-extrabold">Start Your Journey With Us</h2>
                     <p className="mt-3 md:mt-4 text-lg text-white/90">
                         Learn from experts. Train with real equipment. Build a career that lasts.
                     </p>

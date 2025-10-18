@@ -5,7 +5,7 @@ import NotifierProvider from '@/components/Notifier';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-    title: "NexGen Admin",
+    title: "Admins",
     description: "Admin Maintenace and database management",
 };
 

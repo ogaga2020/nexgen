@@ -155,7 +155,7 @@ export default function RegisterPage() {
                 throw new Error(msg || 'Registration failed');
             }
             const message =
-                `Hello NexGen,\n` +
+                `Hello Ogaga-Enterprise,\n` +
                 `My name is ${data.fullName}.\n` +
                 `Course: ${data.trainingType}\n` +
                 `Duration: ${data.trainingDuration} months\n` +

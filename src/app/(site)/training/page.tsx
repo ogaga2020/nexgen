@@ -154,7 +154,7 @@ export default function TrainingDetailsPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-blue-700" />
                 <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20 text-center text-white">
                     <h2 className="text-3xl md:text-4xl font-extrabold">Ready to Join a Training Program?</h2>
-                    <p className="mt-3 md:mt-4 text-lg text-white/90">Apply now and start learning hands-on skills with NexGen experts.</p>
+                    <p className="mt-3 md:mt-4 text-lg text-white/90">Apply now and start learning hands-on skills with our experts.</p>
                     <div className="mt-8 flex items-center justify-center gap-3">
                         <button
                             onClick={() => router.push('/register')}

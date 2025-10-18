@@ -23,7 +23,7 @@ export default function HomePage() {
             Learn by doing • Electrical • Solar • Plumbing
           </div>
           <h1 className="mt-5 text-4xl md:text-6xl font-extrabold tracking-tight">
-            NexGen Flow & Power
+            Ogaga-Enterprise
           </h1>
           <p className="mt-4 md:mt-6 text-lg md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
             Empowering the next generation with practical, job ready technical skills.
@@ -39,7 +39,7 @@ export default function HomePage() {
               href="#why"
               className="inline-flex items-center justify-center rounded-xl bg-white/10 px-6 py-3 font-semibold text-white ring-1 ring-white/15 hover:bg-white/15 transition"
             >
-              Why NexGen?
+              Why train with us?
             </a>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function HomePage() {
 
             <img
               src="https://media.gettyimages.com/id/1036354066/photo/african-american-woman-working-at-shipping-port.jpg?s=612x612&w=0&k=20&c=TEE9cSkoiXeC9UgQvJ96kEBpnktPpYYIGtFgY6hKEtA="
-              alt="Training at NexGen"
+              alt="Training at Ogaga-Enterprise"
               className="h-72 w-full rounded-2xl object-cover shadow-sm ring-1 ring-black/10 md:h-80"
               loading="lazy"
             />
@@ -203,7 +203,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20 text-center text-white">
           <h2 className="text-3xl md:text-4xl font-extrabold">Ready to Begin Your Career?</h2>
           <p className="mt-3 md:mt-4 text-lg text-white/90">
-            Join NexGen Flow & Power and learn from the best.
+            Join Ogaga-Enterprise and learn from the best.
           </p>
           <div className="mt-8">
             <button

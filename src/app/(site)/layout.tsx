@@ -23,7 +23,7 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "NexGen Flow and Power",
+  title: "Ogaga Enterprise",
   description: "Training and services in Electrical, Plumbing, and Solar",
 };
 
