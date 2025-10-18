@@ -139,7 +139,7 @@ export const welcomeAfterVerificationTemplate = (
   balanceDueStr: string
 ) =>
   wrapThemed(`
-    <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Welcome to NexGen</h2>
+    <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Welcome to Ogaga Enterprise</h2>
     <p style="margin:0 0 10px;">Hello ${name}, your registration has been verified and your training is confirmed.</p>
     <div style="margin:14px auto;padding:12px;background:#ecfeff;border:1px solid #bae6fd;border-radius:8px;max-width:400px;text-align:left;">
       <p style="margin:0;line-height:1.7;">
@@ -261,7 +261,7 @@ export const certificateHtml = ({
         <div>
           <div style="font-weight:800;color:${t.heading};">Mr. Ogaga Otaye</div>
           <div style="opacity:.75;font-size:13px;">Chief Executive Officer</div>
-          <div style="opacity:.75;font-size:13px;">ogagaotaye@nexgen.com</div>
+          <div style="opacity:.75;font-size:13px;">ogagaotaye@gmail.com</div>
         </div>
         <div style="text-align:right;">
           <div style="opacity:.75;font-size:13px;">Issued on</div>

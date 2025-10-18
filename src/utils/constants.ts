@@ -1,5 +1,5 @@
 export const EMAIL_SUBJECTS = {
-    ADMIN_CREATED: 'Your NexGen Admin Account',
+    ADMIN_CREATED: 'Your Admin Account',
     OTP_CODE: 'Your OTP Code',
     RESET_SUCCESS: 'Password Reset Successful',
     PAYMENT_RECORDED: 'Payment Recorded',
@@ -7,12 +7,12 @@ export const EMAIL_SUBJECTS = {
     FULLY_PAID_CONGRATS: "Congrats! You're on your way to graduation",
     INSTALLMENT_REMINDER: 'Balance Due in 2 Weeks',
     INSTALLMENT_REMINDER_ADMIN: 'Student Balance Due Soon',
-    CERTIFICATE_ISSUED: 'Your NexGen Certificate',
+    CERTIFICATE_ISSUED: 'Your Certificate is Ready',
 };
 
 export const OTP_EXPIRY_MINUTES = 10;
 
-export const APP_NAME = 'NexGen Flow and Power';
+export const APP_NAME = 'Ogage Enterprise';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || '';
 
@@ -23,7 +23,7 @@ const ADMIN_LIST = (process.env.ADMIN_EMAIL || '')
     .map(s => s.replace(/["\s]/g, ''))
     .filter(Boolean);
 
-export const MAIN_ADMIN_EMAIL = ADMIN_LIST[0] || 'admin@nexgen.com';
+export const MAIN_ADMIN_EMAIL = ADMIN_LIST[0] || 'ogagaenterprise@gmail.com';
 export const ADMIN_EMAILS_TO = ADMIN_LIST.join(',');
 
-export const EMAIL_FROM_NAME = 'NexGen Flow and Power';
+export const EMAIL_FROM_NAME = 'Ogage Enterprise';
