@@ -12,7 +12,7 @@ const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
   12: 700_000
 };
 
-export async function GET(_req: Request, { params }: { params: { userId: string } }) {
+export async function GET(_req: Request, { params }: any) {
   try {
     await connectDB();
 
