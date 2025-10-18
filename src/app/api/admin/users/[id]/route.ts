@@ -13,7 +13,7 @@ type TrainingDuration = 4 | 8 | 12
 const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
     4: 250_000,
     8: 450_000,
-    12: 700_000
+    12: 700_000,
 }
 
 function addMonths(date: Date, months: number) {
@@ -22,29 +22,35 @@ function addMonths(date: Date, months: number) {
     return d
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
     await connectDB()
-    const user = await User.findById(params.id).lean()
+    const { id } = await params
+    const user = await User.findById(id).lean()
     if (!user) return new NextResponse('Not found', { status: 404 })
     const tx = await Transaction.find({ userId: user._id }).sort({ createdAt: 1 }).lean()
     return NextResponse.json({ user, transactions: tx })
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
     await connectDB()
-    const user = await User.findById(params.id)
+    const { id } = await params
+    const user = await User.findById(id)
     if (!user) return new NextResponse('Not found', { status: 404 })
     await Transaction.deleteMany({ userId: user._id })
     await User.findByIdAndDelete(user._id)
     return NextResponse.json({ ok: true })
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     await connectDB()
-    const id = params.id
+    const { id } = await params
 
     let body: any
-    try { body = await req.json() } catch { return new NextResponse('Invalid JSON body', { status: 400 }) }
+    try {
+        body = await req.json()
+    } catch {
+        return new NextResponse('Invalid JSON body', { status: 400 })
+    }
 
     try {
         const user = await User.findById(id)
@@ -101,7 +107,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                     subject: EMAIL_SUBJECTS.PAYMENT_RECORDED,
                     html: paymentRecordedTemplate(
                         user.fullName,
-                        Math.round(TUITION_BY_DURATION[user.trainingDuration] * 0.6),
+                        Math.round(TUITION_BY_DURATION[user.trainingDuration as TrainingDuration] * 0.6),
                         user.trainingType,
                         'Initial',
                         'admin'
@@ -152,7 +158,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             await sendMail({
                 to: (updated?.email as string) || user.email,
                 subject: EMAIL_SUBJECTS.FULLY_PAID_CONGRATS,
-                html: fullyPaidCongratulationsTemplate(updated?.fullName || user.fullName, updated?.trainingType || user.trainingType),
+                html: fullyPaidCongratulationsTemplate(
+                    updated?.fullName || user.fullName,
+                    updated?.trainingType || user.trainingType
+                ),
             })
         }
         return NextResponse.json({ ok: true, user: updated })
