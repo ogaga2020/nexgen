@@ -34,6 +34,22 @@ const TUITION_BY_DURATION: Record<4 | 8 | 12, number> = {
 
 const BUSINESS_E164 = '2348039375634';
 
+function openWhatsAppSmart(url: string) {
+    let win: Window | null = null
+    try { win = window.open('about:blank', '_blank', 'noopener,noreferrer') } catch { }
+    if (win) {
+        try { win.location.replace(url); return true } catch { }
+    }
+    const a = document.createElement('a')
+    a.href = url
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    return true
+}
+
 export default function RegisterPage() {
     const searchParams = useSearchParams();
     const durationParam = searchParams.get('duration');
@@ -103,7 +119,7 @@ export default function RegisterPage() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', PRESET);
-        formData.append('folder', 'nextgen/passport');
+        formData.append('folder', 'enterprise/passport');
         const setBusy = field === 'photo' ? setUploadingUserPhoto : setUploadingGuarantorPhoto;
         setBusy(true);
         try {
@@ -129,62 +145,64 @@ export default function RegisterPage() {
     const fmt = (n: number) => `₦${n.toLocaleString()}`;
 
     const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
-        if (isUploading) {
-            notifyError('Please wait for uploads to finish.');
-            return;
-        }
-        if (!data.photo) {
-            notifyError('Please upload your passport photo.');
-            return;
-        }
-        if (!data.guarantor.photo) {
-            notifyError('Please upload the guarantor photo.');
-            return;
-        }
+        if (isUploading) { notifyError('Please wait for uploads to finish.'); return }
+        if (!data.photo) { notifyError('Please upload your passport photo.'); return }
+        if (!data.guarantor.photo) { notifyError('Please upload the guarantor photo.'); return }
+
+        const tuition = TUITION_BY_DURATION[data.trainingDuration as 4 | 8 | 12]
+        const sixty = Math.round(tuition * 0.6)
+        const forty = tuition - sixty
+
+        const message =
+            `Hello Ogaga-Enterprise,\n` +
+            `My name is ${data.fullName}.\n` +
+            `Course: ${data.trainingType}\n` +
+            `Duration: ${data.trainingDuration} months\n` +
+            `First payment (60%): ₦${sixty.toLocaleString()}\n\n` +
+            `Email: ${data.email}\n` +
+            `Phone: ${data.phone}\n\n` +
+            `Please send your bank/payment details so I can make the first payment.`
+        const wa = `https://wa.me/${BUSINESS_E164}?text=${encodeURIComponent(message)}`
+
+        const preOpened = openWhatsAppSmart(wa)
+
         try {
-            const tuition = TUITION_BY_DURATION[data.trainingDuration as 4 | 8 | 12];
-            const sixty = Math.round(tuition * 0.6);
-            const forty = tuition - sixty;
             const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...data, tuition, firstPayment: sixty, balance: forty, status: 'pending' }),
-            });
+            })
             if (!res.ok) {
-                const msg = await res.text();
-                throw new Error(msg || 'Registration failed');
+                const msg = await res.text()
+                throw new Error(msg || 'Registration failed')
             }
-            const message =
-                `Hello Ogaga-Enterprise,\n` +
-                `My name is ${data.fullName}.\n` +
-                `Course: ${data.trainingType}\n` +
-                `Duration: ${data.trainingDuration} months\n` +
-                `First payment (60%): ${fmt(sixty)}\n\n` +
-                `Email: ${data.email}\n` +
-                `Phone: ${data.phone}\n\n` +
-                `Please send your bank/payment details so I can make the first payment.`;
-            const wa = `https://wa.me/${BUSINESS_E164}?text=${encodeURIComponent(message)}`;
-            const win = window.open(wa, '_blank');
-            if (!win) notifyError('Popup blocked. Please allow popups or tap this button again.');
-            passportRef.current && (passportRef.current.value = '');
-            guarantorRef.current && (guarantorRef.current.value = '');
-            setUserFileLabel('');
-            setGuarantorFileLabel('');
-            setValue('photo', '', { shouldDirty: false });
-            setValue('guarantor.photo', '', { shouldDirty: false });
-            reset({
-                fullName: '',
-                email: '',
-                phone: '',
-                trainingType: undefined as any,
-                trainingDuration: undefined as any,
-                photo: '',
-                guarantor: { fullName: '', email: '', phone: '', photo: '' },
-            });
         } catch (err) {
-            notifyError(err instanceof Error ? err.message : 'Registration failed.');
+            notifyError(err instanceof Error ? err.message : 'Registration failed.')
+            return
         }
-    };
+
+        if (!preOpened) {
+            const ok = openWhatsAppSmart(wa)
+            if (!ok) notifyError('Popup blocked. Enable popups and try again, or open WhatsApp manually.')
+        }
+
+        passportRef.current && (passportRef.current.value = '')
+        guarantorRef.current && (guarantorRef.current.value = '')
+        setUserFileLabel('')
+        setGuarantorFileLabel('')
+        setValue('photo', '', { shouldDirty: false })
+        setValue('guarantor.photo', '', { shouldDirty: false })
+        reset({
+            fullName: '',
+            email: '',
+            phone: '',
+            trainingType: undefined as any,
+            trainingDuration: undefined as any,
+            photo: '',
+            guarantor: { fullName: '', email: '', phone: '', photo: '' },
+        })
+    }
+
 
     const firstErrorMessage = (e: FieldErrors<RegisterForm>): string => {
         if (e.fullName?.message) return e.fullName.message.toString();
@@ -356,7 +374,7 @@ export default function RegisterPage() {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting || isUploading}
-                                    className="w-full rounded-lg bg-[var(--primary)] px-6 py-3 font-semibold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="w-full rounded-lg bg-[var(--primary)] px-6 py-3 font-semibold text-white transition hover:bg-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isSubmitting ? 'Submitting…' : 'Submit Registration'}
                                 </button>
