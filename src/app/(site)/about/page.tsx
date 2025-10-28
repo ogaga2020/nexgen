@@ -156,7 +156,7 @@ export default function AboutPage() {
                             <div className="flex items-center gap-4">
                                 <div className="relative h-20 w-20 overflow-hidden rounded-full ring-1 ring-black/10">
                                     <Image
-                                        src="https://cdn.pixabay.com/photo/2017/07/18/23/23/user-2517431_640.png"
+                                        src="https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg?semt=ais_hybrid&w=740&q=80"
                                         alt="Instructor"
                                         width={160}
                                         height={160}

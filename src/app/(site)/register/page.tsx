@@ -35,11 +35,8 @@ const TUITION_BY_DURATION: Record<4 | 8 | 12, number> = {
 const BUSINESS_E164 = '2348039375634';
 
 function openWhatsAppSmart(url: string) {
-    let win: Window | null = null
-    try { win = window.open('about:blank', '_blank', 'noopener,noreferrer') } catch { }
-    if (win) {
-        try { win.location.replace(url); return true } catch { }
-    }
+    const win = window.open(url, '_blank')
+    if (win) return true
     const a = document.createElement('a')
     a.href = url
     a.target = '_blank'

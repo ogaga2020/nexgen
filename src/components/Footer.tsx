@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { FaInstagram, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 
 export default function Footer() {
@@ -9,7 +10,19 @@ export default function Footer() {
             <div className="mx-auto max-w-7xl px-6 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
                     <div className="lg:col-span-6">
-                        <h3 className="text-xl font-bold">Ogaga-Enterprise</h3>
+                        <Link href="/" className="inline-flex items-center gap-2">
+                            <span className="inline-flex items-center justify-center rounded-full bg-gradient-to-br from-white to-white/70 p-1 ring-1 ring-white/40 shadow-lg shadow-white/10">
+                                <Image
+                                    src="/logo2.jpg"
+                                    alt="Ogaga-Enterprise logo"
+                                    width={40}
+                                    height={40}
+                                    priority
+                                    className="h-10 w-10 rounded-full object-cover brightness-110 contrast-125"
+                                />
+                            </span>
+                            <span className="text-xl font-bold">Ogaga-Enterprise</span>
+                        </Link>
                         <p className="mt-2 text-sm text-gray-300">
                             Empowering the next generation in Electrical, Plumbing, and Solar installations.
                         </p>

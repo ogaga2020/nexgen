@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -24,8 +25,16 @@ export default function Navbar() {
     return (
         <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur shadow-md">
             <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
-                <Link href="/" className="text-xl font-bold text-blue-900">
-                    Ogaga-Enterprise
+                <Link href="/" className="flex items-center gap-2">
+                    <Image
+                        src="/logo2.jpg"
+                        alt="Ogaga-Enterprise logo"
+                        width={36}
+                        height={36}
+                        priority
+                        className="h-9 w-9 rounded-md object-cover"
+                    />
+                    <span className="text-xl font-bold text-blue-900">Ogaga-Enterprise</span>
                 </Link>
 
                 <button

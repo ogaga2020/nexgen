@@ -190,6 +190,12 @@ type CertParams = {
   logoUrl?: string;
 };
 
+const dateOnly = (s: string) => {
+  const d = new Date(s)
+  if (Number.isNaN(d.getTime())) return s
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
 export const certificateEmailBody = ({
   recipientName,
   course,
@@ -210,7 +216,7 @@ export const certificateEmailBody = ({
       <p style="margin:0;line-height:1.7;">
         <strong>Programme:</strong> ${course}<br/>
         <strong>Duration:</strong> ${months}<br/>
-        <strong>Issued on:</strong> ${issuedOn}
+        <strong>Issued on:</strong> ${dateOnly(issuedOn)}
       </p>
     </div>
     <p style="margin:0 0 10px;">Your official certificate is <strong>attached to this email</strong> for download and printing.</p>
@@ -218,7 +224,6 @@ export const certificateEmailBody = ({
   `,
     "user"
   );
-
 
 export const certificateHtml = ({
   recipientName,
@@ -265,7 +270,7 @@ export const certificateHtml = ({
         </div>
         <div style="text-align:right;">
           <div style="opacity:.75;font-size:13px;">Issued on</div>
-          <div style="padding:8px 12px;border-radius:10px;background:${t.panelBg};border:1px solid ${t.panelBorder};font-weight:600;">${issuedOn}</div>
+          <div style="padding:8px 12px;border-radius:10px;background:${t.panelBg};border:1px solid ${t.panelBorder};font-weight:600;">${dateOnly(issuedOn)}</div>
         </div>
       </div>
     </div>
