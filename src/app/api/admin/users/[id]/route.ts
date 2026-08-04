@@ -3,7 +3,6 @@ import { connectDB } from '@/lib/db';
 import User from '@/models/User';
 import Transaction from '@/models/Transaction';
 import logger from '@/lib/logger';
-import mongoose from 'mongoose';
 import { sendMail } from '@/lib/email';
 import { EMAIL_SUBJECTS, ADMIN_EMAILS_TO } from '@/utils/constants';
 import { welcomeAfterVerificationTemplate, paymentRecordedTemplate } from '@/lib/templates';
@@ -14,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     try {
         await connectDB();
         const { id } = await params;
-        if (!mongoose.isValidObjectId(id)) return new NextResponse('Invalid id', { status: 400 });
+        if (!id) return new NextResponse('Invalid id', { status: 400 });
 
         const user = await User.findById(id).lean();
         if (!user) return new NextResponse('Not found', { status: 404 });
@@ -35,7 +34,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     try {
         await connectDB();
         const { id } = await params;
-        if (!mongoose.isValidObjectId(id)) return new NextResponse('Invalid id', { status: 400 });
+        if (!id) return new NextResponse('Invalid id', { status: 400 });
 
         const user = await User.findById(id);
         if (!user) return new NextResponse('Not found', { status: 404 });
@@ -50,7 +49,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 }
 
 type TrainingDuration = 4 | 8 | 12;
-const TUITION_BY_DURATION: Record<TrainingDuration, number> = { 4: 250_000, 8: 450_000, 12: 700_000 };
+const TUITION_BY_DURATION: Record<TrainingDuration, number> = { 4: 350_000, 8: 550_000, 12: 750_000 };
 
 function addMonths(date: Date, months: number) {
     const d = new Date(date);
@@ -62,7 +61,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     try {
         await connectDB();
         const { id } = await params;
-        if (!mongoose.isValidObjectId(id)) return new NextResponse('Invalid id', { status: 400 });
+        if (!id) return new NextResponse('Invalid id', { status: 400 });
 
         let body: any;
         try {

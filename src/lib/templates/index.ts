@@ -86,7 +86,7 @@ export const adminAccountCreated = (name: string, email: string, phone: string) 
         <strong>Phone:</strong> ${phone}
       </p>
     </div>
-    ${btn(`${BASE_URL}/admin`, "Go to Admin Login", "admin")}
+    ${btn(`${BASE_URL}/chigaga`, "Go to Admin Login", "admin")}
   `, "admin");
 
 
@@ -105,7 +105,7 @@ export const resetSuccessTemplate = () =>
   wrapThemed(`
     <h2 style="color:${THEMES.admin.heading};margin:0 0 12px;">Password Reset Successful</h2>
     <p style="margin:0 0 10px;">You can now sign in with your new password.</p>
-    ${btn(`${BASE_URL}/admin`, "Sign In", "admin")}
+    ${btn(`${BASE_URL}/chigaga`, "Sign In", "admin")}
     <p style="margin-top:16px;font-size:12px;color:#64748b;">If you did not perform this action, please contact support immediately.</p>
   `, "admin");
 
@@ -139,7 +139,7 @@ export const welcomeAfterVerificationTemplate = (
   balanceDueStr: string
 ) =>
   wrapThemed(`
-    <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Welcome to Ogaga Enterprise</h2>
+    <h2 style="color:${THEMES.user.heading};margin:0 0 12px;">Welcome to PowerTrust Energy Limited</h2>
     <p style="margin:0 0 10px;">Hello ${name}, your registration has been verified and your training is confirmed.</p>
     <div style="margin:14px auto;padding:12px;background:#ecfeff;border:1px solid #bae6fd;border-radius:8px;max-width:400px;text-align:left;">
       <p style="margin:0;line-height:1.7;">

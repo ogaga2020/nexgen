@@ -1,47 +1,35 @@
-import mongoose from 'mongoose';
+import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
+import { Firestore, getFirestore } from 'firebase-admin/firestore';
 import logger from '@/lib/logger';
 
 declare global {
-    var __mongoose: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null } | undefined;
+  var __firestore: Firestore | undefined;
 }
-const g = global as any;
-if (!g.__mongoose) g.__mongoose = { conn: null, promise: null };
 
-export async function connectDB() {
-    if (g.__mongoose.conn) return g.__mongoose.conn;
+function privateKey() {
+  return process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+}
 
-    const uri = process.env.MONGODB_URI;
-    if (!uri) throw new Error('MONGODB_URI not defined in .env.local');
+export async function connectDB(): Promise<Firestore> {
+  if (global.__firestore) return global.__firestore;
 
-    if (!g.__mongoose.promise) {
-        g.__mongoose.promise = mongoose.connect(uri, {
-            serverSelectionTimeoutMS: 8000,
-            heartbeatFrequencyMS: 2500,
-            maxPoolSize: 5,
-        }).then((m) => {
-            logger.info({ route: 'db', phase: 'connected' });
-            return m;
-        }).catch((err) => {
-            logger.error({
-                route: 'db',
-                phase: 'connection_error',
-                message: err?.message,
-                name: err?.name,
-                code: err?.code,
-                reason: (err?.reason && err.reason.message) || undefined,
-                stack: err?.stack,
-            });
-            throw err;
-        });
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const key = privateKey();
 
-        mongoose.connection.on('error', (e) => {
-            logger.error({ route: 'db', phase: 'runtime_error', message: e?.message, stack: e?.stack });
-        });
-        mongoose.connection.on('disconnected', () => {
-            logger.warn({ route: 'db', phase: 'disconnected' });
-        });
+  if (!getApps().length) {
+    if (projectId && clientEmail && key) {
+      initializeApp({ credential: cert({ projectId, clientEmail, privateKey: key }), projectId });
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      initializeApp({ credential: applicationDefault(), projectId });
+    } else {
+      throw new Error(
+        'Firebase credentials missing. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY.'
+      );
     }
+  }
 
-    g.__mongoose.conn = await g.__mongoose.promise;
-    return g.__mongoose.conn;
+  global.__firestore = getFirestore();
+  logger.info({ route: 'db', phase: 'firestore_connected', projectId: projectId || 'application-default' });
+  return global.__firestore;
 }

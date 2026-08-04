@@ -65,10 +65,10 @@ export default function AdminList() {
   );
 
   const formatDateOnly = (v?: string | null) =>
-    v ? new Date(v).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+    v ? new Date(v).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
 
   const formatDateTime = (v?: string | null) =>
-    v ? new Date(v).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+    v ? new Date(v).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'N/A';
 
   const editors = admins.filter((a) => a.role === 'editor');
 

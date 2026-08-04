@@ -1,6 +1,24 @@
-# Ogaga Enterprise
+# PowerTrust Energy Limited
 
-**Ogaga Enterprise** is a modern service platform that provides **Plumbing**, **Electrical**, and **Solar Energy** solutions, along with a comprehensive **technical training program** for aspiring professionals in these fields.  
+## Firestore configuration
+
+The application uses Firebase Cloud Firestore through the Firebase Admin SDK. Add these server-only environment variables to `.env.local` and to the deployment platform:
+
+```env
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-...@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+To copy existing MongoDB data into Firestore once, also set `MONGODB_URI`, then run:
+
+```bash
+npm run migrate:firestore
+```
+
+The migration preserves MongoDB document IDs, so existing user, transaction, and admin references continue to work. Remove `MONGODB_URI` from the deployed website after validating the migrated data.
+
+**PowerTrust Energy Limited** provides **Plumbing**, **Electrical**, and **Solar Energy** solutions, alongside practical technical training for aspiring professionals.
 
 The platform allows users to explore available services, register for training programs, make online payments, and receive automated reminders about training milestones and balance payments — all from one seamless web application.
 

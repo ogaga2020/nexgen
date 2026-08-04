@@ -5,8 +5,10 @@ import NotifierProvider from '@/components/Notifier';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-    title: "Admins",
-    description: "Admin Maintenace and database management",
+    title: "PowerTrust Operations",
+    description: "PowerTrust Energy Limited administration",
+    icons: { icon: '/powertrust-icon.png' },
+    robots: { index: false, follow: false },
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

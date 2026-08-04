@@ -12,11 +12,11 @@ export const EMAIL_SUBJECTS = {
 
 export const OTP_EXPIRY_MINUTES = 10;
 
-export const APP_NAME = 'Ogage Enterprise';
+export const APP_NAME = 'PowerTrust Energy Limited';
 
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || '';
 
-export const COMPANY_LOGO = `${BASE_URL}/logo.jpg`;
+export const COMPANY_LOGO = `${BASE_URL}/logo.jpeg`;
 
 const ADMIN_LIST = (process.env.ADMIN_EMAIL || '')
     .split(',')
@@ -26,4 +26,4 @@ const ADMIN_LIST = (process.env.ADMIN_EMAIL || '')
 export const MAIN_ADMIN_EMAIL = ADMIN_LIST[0] || 'ogagaenterprise@gmail.com';
 export const ADMIN_EMAILS_TO = ADMIN_LIST.join(',');
 
-export const EMAIL_FROM_NAME = 'Ogage Enterprise';
+export const EMAIL_FROM_NAME = 'PowerTrust Energy Limited';

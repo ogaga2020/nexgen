@@ -27,9 +27,9 @@ const FormSchema = z.object({
 type RegisterForm = z.infer<typeof FormSchema>;
 
 const TUITION_BY_DURATION: Record<4 | 8 | 12, number> = {
-    4: 250_000,
-    8: 450_000,
-    12: 700_000,
+    4: 350_000,
+    8: 550_000,
+    12: 750_000,
 };
 
 const BUSINESS_E164 = '2348039375634';
@@ -151,7 +151,7 @@ export default function RegisterPage() {
         const forty = tuition - sixty
 
         const message =
-            `Hello Ogaga-Enterprise,\n` +
+            `Hello PowerTrust Energy Limited,\n` +
             `My name is ${data.fullName}.\n` +
             `Course: ${data.trainingType}\n` +
             `Duration: ${data.trainingDuration} months\n` +
@@ -183,8 +183,8 @@ export default function RegisterPage() {
             if (!ok) notifyError('Popup blocked. Enable popups and try again, or open WhatsApp manually.')
         }
 
-        passportRef.current && (passportRef.current.value = '')
-        guarantorRef.current && (guarantorRef.current.value = '')
+        if (passportRef.current) passportRef.current.value = ''
+        if (guarantorRef.current) guarantorRef.current.value = ''
         setUserFileLabel('')
         setGuarantorFileLabel('')
         setValue('photo', '', { shouldDirty: false })
@@ -228,29 +228,29 @@ export default function RegisterPage() {
 
     return (
         <>
-            <section className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600" />
-                <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-24 text-center text-white">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm ring-1 ring-white/15">
-                        Secure your seat • 60% now, 40% before graduation
+            <section className="relative overflow-hidden bg-[#061a33]">
+                <div className="absolute inset-0 brand-grid opacity-70" />
+                <div className="absolute -right-20 top-0 h-96 w-96 rounded-full bg-[#0876d1]/25 blur-3xl" />
+                <div className="site-shell relative py-24 text-white md:py-32">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-extrabold uppercase tracking-[.17em] text-[#8bd338]">
+                        Training application · 60/40 payment plan
                     </div>
-                    <h1 className="mt-5 text-4xl md:text-5xl font-extrabold tracking-tight">Training Registration</h1>
-                    <p className="mt-4 md:mt-6 text-lg md:text-xl text-white/90 max-w-3xl mx-auto">
-                        Learn Electrical, Solar, or Plumbing with hands-on workshops and real tools.
+                    <h1 className="display-title mt-7 max-w-4xl text-3xl md:text-5xl">Build a skill<br />that works.</h1>
+                    <p className="mt-7 max-w-2xl text-base leading-7 text-slate-300 md:text-lg">
+                        Apply for practical Electrical, Solar or Plumbing training with PowerTrust Energy Limited.
                     </p>
                 </div>
-                <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl" />
             </section>
-            <div className="bg-white">
-                <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
-                    <div className="grid gap-6 md:grid-cols-3">
+            <div className="bg-[#eef4f9]">
+                <div className="site-shell py-16 md:py-24">
+                    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
                         <form
                             onSubmit={handleSubmit(onSubmit, onInvalid)}
-                            className="md:col-span-2 rounded-2xl border bg-white p-6 md:p-8 shadow-sm ring-1 ring-black/10"
+                            className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(7,27,53,.08)] md:p-10"
                         >
-                            <h2 className="text-xl font-semibold text-gray-900">Your Details</h2>
-                            <p className="mt-1 text-sm text-gray-600">We’ll use this to set up your profile and enrollment.</p>
+                            <span className="eyebrow">Step 01</span>
+                            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-[#071b35]">Your details</h2>
+                            <p className="mt-2 text-sm text-slate-600">We will use this information to create and verify your training profile.</p>
                             <div className="mt-6 grid gap-6 md:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block font-medium text-gray-700">Full Name</label>
@@ -316,7 +316,8 @@ export default function RegisterPage() {
                                 </div>
                             </div>
                             <div className="mt-10 border-t pt-6">
-                                <h3 className="text-lg font-semibold text-gray-900">Guarantor Information</h3>
+                                <span className="eyebrow">Step 02</span>
+                                <h3 className="mt-4 text-xl font-extrabold text-[#071b35]">Guarantor information</h3>
                                 <p className="mt-1 text-sm text-gray-600">A responsible contact to validate your application.</p>
                                 <div className="mt-6 grid gap-6 md:grid-cols-2">
                                     <div>
@@ -371,38 +372,38 @@ export default function RegisterPage() {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting || isUploading}
-                                    className="w-full rounded-lg bg-[var(--primary)] px-6 py-3 font-semibold text-white transition hover:bg-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="w-full rounded-full bg-[#0876d1] px-6 py-4 font-extrabold text-white shadow-[0_15px_35px_rgba(8,118,209,.22)] transition hover:-translate-y-0.5 hover:bg-[#0667b8] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isSubmitting ? 'Submitting…' : 'Submit Registration'}
                                 </button>
                                 <p className="mt-2 text-center text-xs text-gray-500">Your details will be verified by our Admin after payment confirmation.</p>
                             </div>
                         </form>
-                        <aside className="md:sticky md:top-6 h-fit rounded-2xl border bg-white p-6 shadow-sm ring-1 ring-black/10">
+                        <aside className="h-fit rounded-[2rem] bg-[#071b35] p-7 text-white lg:sticky lg:top-24">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">Tuition Summary</h3>
-                                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">60/40 plan</span>
+                                <h3 className="text-lg font-extrabold">Tuition summary</h3>
+                                <span className="rounded-full bg-[#65bd00] px-2.5 py-1 text-xs font-extrabold text-[#061a33]">60/40 plan</span>
                             </div>
                             <div className="mt-4 space-y-3 text-sm">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">Duration</span>
-                                    <span className="font-medium text-gray-900">{duration ? `${duration} months` : '-'}</span>
+                                    <span className="text-slate-400">Duration</span>
+                                    <span className="font-bold">{duration ? `${duration} months` : 'N/A'}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">Tuition</span>
-                                    <span className="font-medium text-gray-900">{tuition ? fmt(tuition) : '-'}</span>
+                                    <span className="text-slate-400">Tuition</span>
+                                    <span className="font-bold">{tuition ? fmt(tuition) : 'N/A'}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">60% (now)</span>
-                                    <span className="font-medium text-gray-900">{sixty ? fmt(sixty) : '-'}</span>
+                                    <span className="text-slate-400">60% (now)</span>
+                                    <span className="font-bold text-[#8bd338]">{sixty ? fmt(sixty) : 'N/A'}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">40% (before graduation)</span>
-                                    <span className="font-medium text-gray-900">{forty ? fmt(forty) : '-'}</span>
+                                    <span className="text-slate-400">40% (before graduation)</span>
+                                    <span className="font-bold">{forty ? fmt(forty) : 'N/A'}</span>
                                 </div>
                             </div>
-                            <div className="mt-6 rounded-xl bg-gray-50 p-4 text-sm text-gray-700 ring-1 ring-gray-100">
-                                <p className="font-medium text-gray-900">What happens next?</p>
+                            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-300">
+                                <p className="font-bold text-white">What happens next?</p>
                                 <ul className="mt-2 list-disc space-y-1 pl-5">
                                     <li>You’ll be redirected to WhatsApp to request payment details.</li>
                                     <li>After payment, our team confirms your enrollment.</li>

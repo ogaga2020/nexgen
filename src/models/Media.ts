@@ -1,30 +1,13 @@
-import mongoose, { Schema, Document, Types, Model } from 'mongoose';
+import { createFirestoreModel } from '@/lib/firestore-model';
 
-export interface IMedia extends Document {
+export interface IMedia {
   publicId: string;
   url: string;
   type: 'image' | 'video';
   category: 'electric' | 'solar' | 'plumbing';
   createdAt: Date;
-  uploadedBy: Types.ObjectId;
+  uploadedBy: string;
   uploadedByName: string;
 }
 
-const MediaSchema = new Schema<IMedia>(
-  {
-    publicId: { type: String, required: true, unique: true },
-    url: { type: String, required: true },
-    type: { type: String, enum: ['image', 'video'], required: true },
-    category: { type: String, enum: ['electric', 'solar', 'plumbing'], required: true },
-    createdAt: { type: Date, required: true },
-    uploadedBy: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
-    uploadedByName: { type: String, required: true },
-  },
-  { timestamps: true }
-);
-
-const Media: Model<IMedia> =
-  (mongoose.models.Media as Model<IMedia>) ||
-  mongoose.model<IMedia>('Media', MediaSchema);
-
-export default Media;
+export default createFirestoreModel<IMedia>('media', { timestamps: true, unique: ['publicId'] });

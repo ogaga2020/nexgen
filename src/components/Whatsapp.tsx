@@ -3,7 +3,7 @@
 import React from 'react';
 
 const PHONE_E164 = '2348039375634';
-const DEFAULT_TEXT = 'Hi NexGen, I\'d like to make an enquiry.';
+const DEFAULT_TEXT = 'Hello PowerTrust Energy Limited, I would like to make an enquiry.';
 
 export default function WhatsApp() {
   const href = `https://wa.me/${PHONE_E164}?text=${encodeURIComponent(DEFAULT_TEXT)}`;
@@ -13,14 +13,14 @@ export default function WhatsApp() {
       href={href}
       target="_blank"
       rel="noopener noreferrer nofollow"
-      aria-label="Chat with NexGen"
+      aria-label="Chat with PowerTrust Energy Limited"
       className={[
         'fixed',
         'right-[clamp(16px,env(safe-area-inset-right)+12px,28px)]',
         'bottom-[clamp(16px,env(safe-area-inset-bottom)+12px,28px)]',
         'h-14 w-14 md:h-16 md:w-16',
         'rounded-full',
-        'bg-[#166FE5] text-white',
+        'bg-[#55a900] text-white',
         'shadow-[0_8px_22px_rgba(0,0,0,0.18)]',
         'ring-1 ring-black/10',
         'inline-flex items-center justify-center',

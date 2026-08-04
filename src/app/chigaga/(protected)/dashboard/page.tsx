@@ -97,7 +97,7 @@ export default function AdminDashboard() {
 
     const money = (n?: number) => {
         if (!showAmounts) return '••••';
-        if (typeof n !== 'number') return '—';
+        if (typeof n !== 'number') return 'N/A';
         return `₦${n.toLocaleString()}`;
     };
 
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
                 <StatCard
                     label="Payments (₦)"
                     value={money(txSummary?.totalAmount)}
-                    sub={`${txSummary?.success ?? '—'} success • ${txSummary?.pending ?? '—'} pending`}
+                    sub={`${txSummary?.success ?? 'N/A'} success • ${txSummary?.pending ?? 'N/A'} pending`}
                 />
             </div>
 
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
                 <div className="rounded-xl border bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold">Student Payments</h3>
-                        <button onClick={() => router.push('/admin/students')} className="text-sm text-blue-600 hover:underline">
+                        <button onClick={() => router.push('/chigaga/students')} className="text-sm text-blue-600 hover:underline">
                             View students
                         </button>
                     </div>
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
                 <div className="rounded-xl border bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold">Media by Category</h3>
-                        <button onClick={() => router.push('/admin/media')} className="text-sm text-blue-600 hover:underline">
+                        <button onClick={() => router.push('/chigaga/media')} className="text-sm text-blue-600 hover:underline">
                             Manage media
                         </button>
                     </div>
@@ -261,14 +261,14 @@ export default function AdminDashboard() {
             <div className="rounded-xl border bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">Transactions</h3>
-                    <button onClick={() => router.push('/admin/transaction')} className="text-sm text-blue-600 hover:underline">
+                    <button onClick={() => router.push('/chigaga/transaction')} className="text-sm text-blue-600 hover:underline">
                         View transactions
                     </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <StatCard label="Total Received" value={money(txSummary?.totalAmount)} />
-                    <StatCard label="Successful" value={txSummary?.success ?? '—'} />
-                    <StatCard label="Pending" value={txSummary?.pending ?? '—'} />
+                    <StatCard label="Successful" value={txSummary?.success ?? 'N/A'} />
+                    <StatCard label="Pending" value={txSummary?.pending ?? 'N/A'} />
                 </div>
                 {!txSummary && <div className="mt-3 text-xs text-gray-500">No transaction data loaded.</div>}
             </div>

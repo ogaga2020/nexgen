@@ -11,9 +11,9 @@ type TrainingDuration = 4 | 8 | 12;
 type TrainingType = 'Electrical' | 'Plumbing' | 'Solar';
 
 const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
-    4: 250_000,
-    8: 450_000,
-    12: 700_000
+    4: 350_000,
+    8: 550_000,
+    12: 750_000
 }
 const WHATSAPP_E164 = process.env.WHATSAPP_E164 || '2348039375634';
 
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
         await doc.save();
 
         const lines = [
-            `Hello Ogaga-Enterprise Admin,`,
+            `Hello PowerTrust Energy Limited Admin,`,
             ``,
             `My name is ${fullName}.`,
             `I just submitted my registration for training.`,
