@@ -1,107 +1,126 @@
 # PowerTrust Energy Limited
 
-## Firestore configuration
+PowerTrust Energy Limited is a modern service and training platform for electrical systems, solar and backup power, and plumbing infrastructure in Delta State, Nigeria.
 
-The application uses Firebase Cloud Firestore through the Firebase Admin SDK. Add these server-only environment variables to `.env.local` and to the deployment platform:
+The website includes a responsive public experience, project media stream, training registration, payment tracking, certificate management, and a protected operations portal for administrators.
 
-```env
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-...@your-project-id.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+## Platform highlights
+
+- Electrical, solar, and plumbing service pages
+- Responsive project stream with masonry media, progressive loading, and image or video viewer
+- Technical training registration with 4, 8, and 12 month programs
+- Student, transaction, certificate, and media management
+- First-user superadmin bootstrap with role-based admin access
+- Firebase Cloud Firestore persistence
+- Cloudinary image and video delivery
+- Email notifications, verification codes, reminders, and certificates
+- Custom PowerTrust branding, favicon, metadata, sitemap, robots rules, and 404 page
+- Responsive layouts for desktop, tablet, and mobile
+
+## Training fees
+
+| Duration | Tuition | Payment structure |
+| --- | ---: | --- |
+| 4 months | ₦350,000 | 60% initial payment, 40% balance |
+| 8 months | ₦550,000 | 60% initial payment, 40% balance |
+| 12 months | ₦750,000 | 60% initial payment, 40% balance |
+
+## Technology
+
+- Next.js 15 App Router
+- React 19 and TypeScript
+- Tailwind CSS
+- Firebase Admin SDK and Cloud Firestore
+- Cloudinary
+- Nodemailer
+- JSON Web Tokens and bcrypt
+- Zod validation
+
+## Requirements
+
+- Node.js 24.x
+- npm
+- Firebase service-account credentials
+- Cloudinary account
+- SMTP email account
+
+## Local setup
+
+```bash
+git clone https://github.com/ogaga2020/nexgen.git
+cd nexgen
+npm install
 ```
 
-To copy existing MongoDB data into Firestore once, also set `MONGODB_URI`, then run:
+Create a local `.env` file. Never commit this file or a Firebase service-account JSON file.
+
+```env
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_CLOUDINARY_UNSIGNED_PRESET=
+
+EMAIL_USER=
+EMAIL_PASS=
+ADMIN_EMAIL=
+JWT_SECRET=
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+Start development:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Firebase administration
+
+Firebase credentials are read directly from environment variables. Hosting platforms do not need access to a local credential-file path.
+
+When the admin collection is empty, the private operations portal displays the first-account setup. That account becomes the superadmin. Authenticated administrators can then create additional team accounts.
+
+## MongoDB migration
+
+The repository includes a one-time migration utility for legacy MongoDB data. Temporarily add `MONGODB_URI` to the local environment and run:
 
 ```bash
 npm run migrate:firestore
 ```
 
-The migration preserves MongoDB document IDs, so existing user, transaction, and admin references continue to work. Remove `MONGODB_URI` from the deployed website after validating the migrated data.
+The migration preserves legacy document IDs so student, payment, certificate, media, and admin references remain connected. Remove `MONGODB_URI` after verifying the migration.
 
-**PowerTrust Energy Limited** provides **Plumbing**, **Electrical**, and **Solar Energy** solutions, alongside practical technical training for aspiring professionals.
+## Commands
 
-The platform allows users to explore available services, register for training programs, make online payments, and receive automated reminders about training milestones and balance payments — all from one seamless web application.
+```bash
+npm run dev             # Start local development
+npm run typecheck       # Validate TypeScript
+npm run build           # Create a production build
+npm run start           # Run the production server
+npm run migrate:firestore
+```
 
----
+## Deployment
 
-## 🔧 Core Services
+The application is designed for Vercel or another Node.js hosting platform.
 
-### ⚡ Electrical Installations
-- Residential and commercial wiring
-- Maintenance and fault detection
-- Inverter and power backup setup
-- Smart metering and energy monitoring
+1. Use Node.js 24.x.
+2. Add all required environment variables in the hosting dashboard.
+3. Keep `.env`, `.secrets`, and Firebase JSON credentials out of Git.
+4. Set `NEXT_PUBLIC_BASE_URL` to the production URL.
+5. Run `npm run build` as the build command.
 
-### 🔆 Solar Energy Solutions
-- Solar panel installation and design
-- Battery and inverter integration
-- System maintenance and performance checks
-- Energy auditing and upgrade recommendations
+## Contact
 
-### 💧 Plumbing Services
-- Water supply and pipe installations
-- Bathroom, kitchen, and drainage systems
-- Leak detection and repair
-- Borehole and water tank installations
+PowerTrust Energy Limited<br />
+No. 28A James Ejawan Plaza, Ugborikoko, Airport Road, Delta State, Nigeria.
 
----
+## License
 
-## 🎓 Training Programs
-
-Ogaga Enterprise offers professional hands-on training across the **Electrical**, **Solar**, and **Plumbing** disciplines.  
-Each program runs for flexible durations depending on your commitment:
-
-| Duration | Cost (₦) | Payment Mode |
-|-----------|-----------|--------------|
-| 4 Months  | ₦250,000 | 60% upfront, 40% before graduation |
-| 8 Months  | ₦450,000 | 60% upfront, 40% before graduation |
-| 12 Months | ₦700,000 | 60% upfront, 40% before graduation |
-
-Trainees learn through practical sessions, supervised field experience, and access to modern tools and equipment.
-
----
-
-## 🧰 Features
-
-- User registration with passport & guarantor photo upload (via Cloudinary)  
-- Secure payment integration via **Paystack**  
-- Automated **email reminders** for installment balances  
-- Admin dashboard for managing students, payments, and media uploads  
-- Gallery for public viewing of uploaded project photos/videos  
-- Real-time filtering, pagination, and export to Excel for admin data views  
-- Structured API architecture (Node.js & MongoDB)  
-- Tailwind CSS frontend with responsive design
-
----
-
-## 🕓 Automated Reminders (Cron)
-
-The system includes an automatic email reminder feature that runs daily using Vercel’s scheduled functions.
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/admin/reminder",
-      "schedule": "0 8 * * *"
-    }
-  ]
-}
-````
-
-This triggers the `/api/admin/reminder` endpoint every morning at **09:00 Lagos time (08:00 UTC)** to send payment reminders.
-
----
-
-## 📫 Contact
-
-**Ogaga Enterprise**
-Plumbing • Electrical • Solar Energy • Training
-📍 Delta, Nigeria
-📧 [ogagaenterprise@gmail.com](mailto:support@ogagaenterprise.com)
-🌐 [www.ogagaenterprise.com](https://www.ogagaenterprise.com)
-
----
-
-> *Ogaga Enterprise – Empowering technical skills, powering a sustainable future.*
-
+Private business software. All rights reserved by PowerTrust Energy Limited.
