@@ -17,14 +17,6 @@ The website includes a responsive public experience, project media stream, train
 - Custom PowerTrust branding, favicon, metadata, sitemap, robots rules, and 404 page
 - Responsive layouts for desktop, tablet, and mobile
 
-## Training fees
-
-| Duration | Tuition | Payment structure |
-| --- | ---: | --- |
-| 4 months | ₦350,000 | 60% initial payment, 40% balance |
-| 8 months | ₦550,000 | 60% initial payment, 40% balance |
-| 12 months | ₦750,000 | 60% initial payment, 40% balance |
-
 ## Technology
 
 - Next.js 15 App Router
@@ -85,16 +77,6 @@ Open `http://localhost:3000`.
 Firebase credentials are read directly from environment variables. Hosting platforms do not need access to a local credential-file path.
 
 When the admin collection is empty, the private operations portal displays the first-account setup. That account becomes the superadmin. Authenticated administrators can then create additional team accounts.
-
-## MongoDB migration
-
-The repository includes a one-time migration utility for legacy MongoDB data. Temporarily add `MONGODB_URI` to the local environment and run:
-
-```bash
-npm run migrate:firestore
-```
-
-The migration preserves legacy document IDs so student, payment, certificate, media, and admin references remain connected. Remove `MONGODB_URI` after verifying the migration.
 
 ## Commands
 

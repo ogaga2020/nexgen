@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import NotifierProvider from '@/components/Notifier';
 import WhatsApp from '@/components/Whatsapp';
+import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({ variable: '--font-ui', subsets: ['latin'], display: 'swap' });
 const openSans = Open_Sans({ variable: '--font-body', subsets: ['latin'], display: 'swap' });
@@ -36,6 +37,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <WhatsApp />
         </NotifierProvider>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
