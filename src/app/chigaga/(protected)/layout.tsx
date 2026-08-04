@@ -9,11 +9,11 @@ import AdminNavbar from '@/components/AdminNavbar';
 
 export default async function ProtectedAdminLayout({ children }: { children: React.ReactNode }) {
   const me = await getCurrentAdmin();
-  if (!me) redirect('/admin');
+  if (!me) redirect('/chigaga');
   return (
-    <>
+    <div className="admin-shell">
       <AdminNavbar />
-      <main className="p-4">{children}</main>
-    </>
+      <main className="admin-workspace">{children}</main>
+    </div>
   );
 }

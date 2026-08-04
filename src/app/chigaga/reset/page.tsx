@@ -41,7 +41,7 @@ function Inner() {
     try {
       await axios.post('/api/admin/reset', { email, password: pw, confirm: pw2 }, { withCredentials: true });
       toast.success('Password reset successful. Please sign in.');
-      router.push('/admin');
+      router.push('/chigaga');
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Password reset failed');
     } finally {
@@ -125,7 +125,7 @@ function Inner() {
           </button>
 
           <div className="text-center mt-4">
-            <button onClick={() => router.push('/admin')} className="text-[var(--accent)] hover:underline">
+            <button onClick={() => router.push('/chigaga')} className="text-[var(--accent)] hover:underline">
               Back to login
             </button>
           </div>

@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
             try {
                 await sendMail({
                     to: emailNorm,
-                    subject: 'Your NexGen Admin Access',
+                    subject: 'Your PowerTrust Admin Access',
                     html: adminAccountCreated(fullName, emailNorm, phone),
                 });
             } catch { }
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         try {
             await sendMail({
                 to: emailNorm,
-                subject: 'Your NexGen Admin Access',
+                subject: 'Your PowerTrust Admin Access',
                 html: adminAccountCreated(fullName, emailNorm, phone),
             });
         } catch { }

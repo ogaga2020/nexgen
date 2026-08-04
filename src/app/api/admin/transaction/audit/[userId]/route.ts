@@ -7,9 +7,9 @@ export const runtime = 'nodejs';
 
 type TrainingDuration = 4 | 8 | 12;
 const TUITION_BY_DURATION: Record<TrainingDuration, number> = {
-  4: 250_000,
-  8: 450_000,
-  12: 700_000
+  4: 350_000,
+  8: 550_000,
+  12: 750_000
 };
 
 export async function GET(_req: Request, { params }: any) {

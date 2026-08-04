@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
         }));
 
         const [sumAgg] = await Promise.all([
-            Transaction.aggregate<AggByStatus>([
+            Transaction.aggregate([
                 { $match: baseQuery },
                 { $group: { _id: '$status', totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } },
             ]),

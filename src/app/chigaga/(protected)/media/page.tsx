@@ -377,7 +377,7 @@ export default function MediaUploadPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-2 hidden md:table-cell">
-                                                {m.createdAt ? new Date(m.createdAt).toLocaleString() : '—'}
+                                                {m.createdAt ? new Date(m.createdAt).toLocaleString() : 'N/A'}
                                             </td>
                                             <td className="px-4 py-2 text-right md:text-left space-x-3">
                                                 <button onClick={() => setViewing(m)} className="text-blue-600 hover:underline">View</button>
@@ -420,7 +420,7 @@ export default function MediaUploadPage() {
                                 <div className="mt-4 text-sm text-gray-700 grid md:grid-cols-2 gap-4">
                                     <div><b>Type:</b> {viewing?.type}</div>
                                     <div><b>Category:</b> {viewing?.category}</div>
-                                    <div><b>Uploaded:</b> {viewing?.createdAt ? new Date(viewing.createdAt).toLocaleString() : '—'}</div>
+                                    <div><b>Uploaded:</b> {viewing?.createdAt ? new Date(viewing.createdAt).toLocaleString() : 'N/A'}</div>
                                     <a href={viewing?.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Open in new tab</a>
                                 </div>
 

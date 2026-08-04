@@ -1,43 +1,16 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import { createFirestoreModel } from '@/lib/firestore-model';
 
-export interface IAdmin extends Document {
-    fullName: string;
-    email: string;
-    phone: string;
-    password: string;
-    role: 'superadmin' | 'editor';
-    lastLoggedIn?: Date;
-    otp?: {
-        code: string;
-        expires: Date;
-    };
-    resetToken?: {
-        token: string;
-        expires: Date;
-    };
+export interface IAdmin {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: 'superadmin' | 'editor';
+  lastLoggedIn?: Date;
+  otp?: { code: string; expires: Date };
+  resetToken?: { token: string; expires: Date };
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const AdminSchema = new Schema<IAdmin>(
-    {
-        fullName: { type: String, required: true },
-        email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-        phone: { type: String, required: true },
-        password: { type: String, required: true },
-        role: { type: String, enum: ['superadmin', 'editor'], default: 'editor' },
-        lastLoggedIn: { type: Date },
-        otp: {
-            code: { type: String },
-            expires: { type: Date }
-        },
-        resetToken: {
-            token: { type: String },
-            expires: { type: Date }
-        }
-    },
-    { timestamps: true }
-);
-
-const Admin: Model<IAdmin> =
-    (mongoose.models.Admin as Model<IAdmin>) || mongoose.model<IAdmin>('Admin', AdminSchema);
-
-export default Admin;
+export default createFirestoreModel<IAdmin>('admins', { timestamps: true, unique: ['email'] });

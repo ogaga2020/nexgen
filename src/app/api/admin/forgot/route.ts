@@ -13,11 +13,6 @@ export const revalidate = 0
 export async function POST(req: NextRequest) {
     const meta = { route: '/api/admin/forgot', method: 'POST' }
 
-    if (!process.env.MONGODB_URI) {
-        logger.error({ ...meta, phase: 'env', error: 'MONGODB_URI missing' })
-        return NextResponse.json({ error: 'MONGODB_URI not set on server' }, { status: 500 })
-    }
-
     let email = ''
     try {
         const body = await req.json()
