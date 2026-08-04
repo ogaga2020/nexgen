@@ -11,7 +11,7 @@ import { FiArrowRight, FiCheck, FiLock, FiMail, FiPhone, FiShield, FiUser } from
 type FormState = { fullName: string; email: string; phone: string; password: string };
 
 export default function AdminEntryPage() {
-  const [setupMode, setSetupMode] = useState<boolean | null>(null);
+  const [setupMode, setSetupMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>({ fullName: '', email: '', phone: '', password: '' });
   const router = useRouter();
@@ -47,18 +47,6 @@ export default function AdminEntryPage() {
       setLoading(false);
     }
   };
-
-  if (setupMode === null) {
-    return (
-      <main className="admin-entry-shell">
-        <div className="admin-loader" role="status" aria-live="polite">
-          <span className="admin-loader-ring"><Image src="/powertrust-icon.png" alt="" width={54} height={54} priority /></span>
-          <strong>PowerTrust Operations</strong>
-          <small>Checking secure setup…</small>
-        </div>
-      </main>
-    );
-  }
 
   const FieldIcon = setupMode ? FiUser : FiMail;
 

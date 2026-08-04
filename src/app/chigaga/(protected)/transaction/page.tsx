@@ -5,6 +5,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useNotifier } from '@/components/Notifier';
+import { FiBookOpen, FiCheckCircle, FiClock, FiCreditCard, FiUser, FiX } from 'react-icons/fi';
 
 type TxUser = { fullName: string; email: string; phone: string };
 type Transaction = {
@@ -37,6 +38,9 @@ type Audit = {
     initial: null | { amount: number; expected: number; status: 'pending' | 'success'; reference: string; date: string };
     balance: null | { amount: number; expected: number; status: 'pending' | 'success'; reference: string; date: string };
 };
+
+const money = (value: number) => `₦${value.toLocaleString()}`;
+const dateTime = (value?: string) => value ? new Date(value).toLocaleString() : 'Not recorded';
 
 export default function TransactionsPage() {
     const { error } = useNotifier();
@@ -111,10 +115,18 @@ export default function TransactionsPage() {
     }, [page, month, status, tType, search, sortKey, sortDir]);
 
     useEffect(() => {
-        if (auditOpen) document.body.style.overflow = 'hidden';
-        else document.body.style.overflow = '';
+        if (!auditOpen) return;
+
+        const previousOverflow = document.body.style.overflow;
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setAuditOpen(false);
+        };
+
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('keydown', closeOnEscape);
         return () => {
-            document.body.style.overflow = '';
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener('keydown', closeOnEscape);
         };
     }, [auditOpen]);
 
@@ -152,14 +164,18 @@ export default function TransactionsPage() {
     const badge = (st: Transaction['status']) =>
         st === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800';
 
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
     const openAudit = async (userId: string) => {
         setAuditOpen(true);
         setAuditLoading(true);
+        setAudit(null);
         try {
             const { data } = await axios.get<Audit>(`/api/admin/transaction/audit/${userId}`);
             setAudit(data);
+        } catch (e: unknown) {
+            let msg = 'Unable to load this payment audit';
+            if (axios.isAxiosError(e)) msg = (e.response?.data as { error?: string } | undefined)?.error || e.message || msg;
+            error(msg);
+            setAuditOpen(false);
         } finally {
             setAuditLoading(false);
         }
@@ -377,67 +393,82 @@ export default function TransactionsPage() {
             </div>
 
             {auditOpen && (
-                <div className="fixed inset-0 z-50">
-                    <div className="absolute inset-0 bg-black/50" />
-                    <div className="fixed inset-0 flex items-center justify-center p-4">
-                        <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl">
-                            <div className="flex items-center justify-between p-4 border-b">
-                                <h3 className="text-lg font-semibold">Payment Audit</h3>
-                                <button onClick={() => setAuditOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                <div className="admin-audit-overlay" onClick={() => setAuditOpen(false)}>
+                    <section className="admin-audit-modal" role="dialog" aria-modal="true" aria-labelledby="payment-audit-title" onClick={(event) => event.stopPropagation()}>
+                        <header className="admin-audit-head">
+                            <div>
+                                <span>Payment record</span>
+                                <h2 id="payment-audit-title">Transaction audit</h2>
                             </div>
-                            <div className="px-4 pb-4">
-                                <div className="max-h-[70vh] overflow-y-auto pr-1">
-                                    {auditLoading && <p>Loading…</p>}
-                                    {!auditLoading && audit && (
-                                        <div className="space-y-4">
-                                            <div className="grid sm:grid-cols-2 gap-2 text-sm">
-                                                <div><span className="text-gray-500">Name:</span> {audit.user.fullName}</div>
-                                                <div><span className="text-gray-500">Email:</span> {audit.user.email}</div>
-                                                <div><span className="text-gray-500">Program:</span> {audit.user.trainingType} ({audit.user.trainingDuration} months)</div>
-                                                <div><span className="text-gray-500">Payment Status:</span> {audit.user.paymentStatus.replace('_', ' ')}</div>
-                                                <div><span className="text-gray-500">Tuition:</span> ₦{audit.user.tuition.toLocaleString()}</div>
-                                                <div><span className="text-gray-500">Paid Total:</span> ₦{audit.user.paidTotal.toLocaleString()}</div>
-                                            </div>
+                            <button type="button" onClick={() => setAuditOpen(false)} aria-label="Close payment audit"><FiX /></button>
+                        </header>
 
-                                            <div className="border rounded-lg">
-                                                <div className="p-3 border-b font-medium bg-gray-50">Initial (60%)</div>
-                                                <div className="p-3 text-sm grid sm:grid-cols-2 gap-2">
-                                                    <div><span className="text-gray-500">Expected:</span> ₦{(audit.initial?.expected ?? 0).toLocaleString()}</div>
-                                                    <div><span className="text-gray-500">Amount:</span> {audit.initial ? `₦${audit.initial.amount.toLocaleString()}` : '-'}</div>
-                                                    <div><span className="text-gray-500">Status:</span> {audit.initial?.status ?? '-'}</div>
-                                                    <div><span className="text-gray-500">Reference:</span> {audit.initial?.reference ?? '-'}</div>
-                                                    <div className="sm:col-span-2"><span className="text-gray-500">Date:</span> {audit.initial?.date ? new Date(audit.initial.date).toLocaleString() : '-'}</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="border rounded-lg">
-                                                <div className="p-3 border-b font-medium bg-gray-50">Balance (40%)</div>
-                                                <div className="p-3 text-sm grid sm:grid-cols-2 gap-2">
-                                                    <div><span className="text-gray-500">Expected:</span> ₦{(audit.balance?.expected ?? (audit.user.tuition - (audit.initial?.expected ?? 0))).toLocaleString()}</div>
-                                                    <div><span className="text-gray-500">Amount:</span> {audit.balance ? `₦${audit.balance.amount.toLocaleString()}` : '-'}</div>
-                                                    <div><span className="text-gray-500">Status:</span> {audit.balance?.status ?? '-'}</div>
-                                                    <div><span className="text-gray-500">Reference:</span> {audit.balance?.reference ?? '-'}</div>
-                                                    <div className="sm:col-span-2"><span className="text-gray-500">Date:</span> {audit.balance?.date ? new Date(audit.balance.date).toLocaleString() : '-'}</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="text-sm text-gray-600">
-                                                <strong>Snapshot:</strong>{' '}
-                                                {audit.initial?.status !== 'success'
-                                                    ? 'Initial payment pending (60%)'
-                                                    : audit.balance?.status !== 'success'
-                                                        ? 'Balance pending (40%)'
-                                                        : 'Fully paid (100%)'}
-                                            </div>
-                                        </div>
-                                    )}
+                        <div className="admin-audit-body">
+                            {auditLoading && (
+                                <div className="admin-audit-loading" role="status">
+                                    <span />
+                                    <strong>Loading payment record</strong>
+                                    <small>Retrieving the latest verified details</small>
                                 </div>
-                            </div>
-                            <div className="p-4 border-t flex justify-end">
-                                <button onClick={() => setAuditOpen(false)} className="px-4 py-2 rounded bg-gray-800 text-white">Close</button>
-                            </div>
+                            )}
+
+                            {!auditLoading && audit && (
+                                <>
+                                    <div className="admin-audit-person">
+                                        <div className="admin-audit-avatar"><FiUser /></div>
+                                        <div>
+                                            <span>Student account</span>
+                                            <h3>{audit.user.fullName}</h3>
+                                            <p>{audit.user.email}</p>
+                                        </div>
+                                        <span className={`admin-audit-state ${audit.user.paymentStatus}`}>
+                                            {audit.user.paymentStatus.replaceAll('_', ' ')}
+                                        </span>
+                                    </div>
+
+                                    <div className="admin-audit-summary">
+                                        <article><FiBookOpen /><span>Programme</span><strong>{audit.user.trainingType}</strong><small>{audit.user.trainingDuration} months</small></article>
+                                        <article><FiCreditCard /><span>Total tuition</span><strong>{money(audit.user.tuition)}</strong><small>Agreed programme fee</small></article>
+                                        <article><FiCheckCircle /><span>Total received</span><strong>{money(audit.user.paidTotal)}</strong><small>{audit.user.tuition > 0 ? Math.min(100, Math.round((audit.user.paidTotal / audit.user.tuition) * 100)) : 0}% complete</small></article>
+                                    </div>
+
+                                    <div className="admin-audit-progress" aria-label="Payment completion">
+                                        <div><span>Payment progress</span><strong>{money(Math.max(0, audit.user.tuition - audit.user.paidTotal))} outstanding</strong></div>
+                                        <span><i style={{ width: `${audit.user.tuition > 0 ? Math.min(100, (audit.user.paidTotal / audit.user.tuition) * 100) : 0}%` }} /></span>
+                                    </div>
+
+                                    <div className="admin-audit-stages">
+                                        <article className="admin-audit-stage">
+                                            <header>
+                                                <div><span>Stage 01</span><h3>Initial payment</h3><small>60% of tuition</small></div>
+                                                <span className={audit.initial?.status === 'success' ? 'is-success' : 'is-pending'}>{audit.initial?.status ?? 'Not paid'}</span>
+                                            </header>
+                                            <div className="admin-audit-money"><span>Received<strong>{audit.initial ? money(audit.initial.amount) : money(0)}</strong></span><span>Expected<strong>{money(audit.initial?.expected ?? audit.user.expectedInitial)}</strong></span></div>
+                                            <dl><div><dt>Reference</dt><dd>{audit.initial?.reference ?? 'Not available'}</dd></div><div><dt><FiClock /> Recorded</dt><dd>{dateTime(audit.initial?.date)}</dd></div></dl>
+                                        </article>
+
+                                        <article className="admin-audit-stage">
+                                            <header>
+                                                <div><span>Stage 02</span><h3>Balance payment</h3><small>Remaining 40%</small></div>
+                                                <span className={audit.balance?.status === 'success' ? 'is-success' : 'is-pending'}>{audit.balance?.status ?? 'Not paid'}</span>
+                                            </header>
+                                            <div className="admin-audit-money"><span>Received<strong>{audit.balance ? money(audit.balance.amount) : money(0)}</strong></span><span>Expected<strong>{money(audit.balance?.expected ?? audit.user.expectedBalance)}</strong></span></div>
+                                            <dl><div><dt>Reference</dt><dd>{audit.balance?.reference ?? 'Not available'}</dd></div><div><dt><FiClock /> Recorded</dt><dd>{dateTime(audit.balance?.date)}</dd></div></dl>
+                                        </article>
+                                    </div>
+
+                                    <div className="admin-audit-snapshot">
+                                        <span className={audit.user.paymentStatus === 'fully_paid' ? 'is-complete' : ''}><FiCheckCircle /></span>
+                                        <div><small>Current snapshot</small><strong>{audit.initial?.status !== 'success' ? 'Initial payment is still pending' : audit.balance?.status !== 'success' ? 'Initial payment complete, balance pending' : 'All programme fees have been paid'}</strong></div>
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    </div>
+
+                        <footer className="admin-audit-foot">
+                            <button type="button" onClick={() => setAuditOpen(false)}>Close audit</button>
+                        </footer>
+                    </section>
                 </div>
             )}
         </>
